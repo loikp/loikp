@@ -1,16 +1,14 @@
-## Hi there 👋
 
-<!--
-**loikp/loikp** is a ✨ _special_ ✨ repository because its `README.md` (this file) appears on your GitHub profile.
+# Template From WebWind 🌪
 
-Here are some ideas to get you started:
+## Local Dev
+1. install node, get install pkg from https://nodejs.org/en/download
+2. run `npm install`
+3. run `npm run dev`
 
-- 🔭 I’m currently working on ...
-- 🌱 I’m currently learning ...
-- 👯 I’m looking to collaborate on ...
-- 🤔 I’m looking for help with ...
-- 💬 Ask me about ...
-- 📫 How to reach me: ...
-- 😄 Pronouns: ...
-- ⚡ Fun fact: ...
--->
+## Remote Development
+1. run `npm run build`, and get `dist` folder
+2. put the `dist` folder to https://app.netlify.com/
+
+## Any Qustion?
+Any question, fell free to contact me with ahhcr68@gmail.com
