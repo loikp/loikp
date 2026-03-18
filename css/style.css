@@ -1228,6 +1228,10 @@ body::after {
     padding: 48px;
     box-shadow: 0 12px 32px var(--shadow-lg);
     border: 4px solid var(--primary);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
 }
 
 .donation-content p {
@@ -1383,6 +1387,13 @@ footer p {
         display: flex;
         align-items: center;
         gap: 3px;
+        height: 32px;
+    }
+    
+    #chapter-select {
+        padding: 5px 10px;
+        font-size: 0.75rem;
+        height: 32px;
     }
     
     .comic-info {
@@ -1436,5 +1447,18 @@ footer p {
     .section-title {
         font-size: 1.5rem;
         margin-bottom: 32px;
+    }
+    
+    .donation-content {
+        padding: 24px;
+    }
+    
+    .qrcode {
+        width: 200px;
+        height: 200px;
+    }
+    
+    .donation-content p {
+        font-size: 1rem;
     }
 }
