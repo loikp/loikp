@@ -204,7 +204,7 @@ body::after {
     position: absolute;
     font-size: 6rem;
     animation: float 3s ease-in-out infinite;
-    z-index: 2;
+    z-index: 0;
     pointer-events: none;
     opacity: 0.4;
 }
@@ -216,7 +216,7 @@ body::after {
     background: rgba(255, 255, 255, 0.2);
     transform: rotate(45deg);
     animation: float 4s ease-in-out infinite;
-    z-index: 2;
+    z-index: 0;
     pointer-events: none;
 }
 
@@ -227,7 +227,7 @@ body::after {
     border: 3px solid rgba(255, 255, 255, 0.2);
     border-radius: 50%;
     animation: pulse 2s ease-in-out infinite;
-    z-index: 2;
+    z-index: 0;
     pointer-events: none;
 }
 
@@ -239,7 +239,7 @@ body::after {
     border-radius: 50%;
     opacity: 0.15;
     animation: float 5s ease-in-out infinite;
-    z-index: 2;
+    z-index: 0;
     pointer-events: none;
 }
 
@@ -250,7 +250,7 @@ body::after {
     background: var(--primary);
     opacity: 0.1;
     animation: rotate 10s linear infinite;
-    z-index: 2;
+    z-index: 0;
     pointer-events: none;
 }
 
@@ -263,7 +263,7 @@ body::after {
     border-bottom: 50px solid var(--accent);
     opacity: 0.15;
     animation: float 4s ease-in-out infinite;
-    z-index: 2;
+    z-index: 0;
     pointer-events: none;
 }
 
@@ -279,18 +279,23 @@ body::after {
 
 .hero-content {
     text-align: center;
-    position: relative;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
     z-index: 1;
+    width: 100%;
 }
 
 .hero-title {
     font-size: 3.5rem;
     font-weight: 900;
-    margin-bottom: 24px;
+    margin-bottom: 40px;
     text-shadow: none;
     letter-spacing: 2px;
     line-height: 1.2;
     color: white;
+    font-family: 'Nunito', 'Comic Sans MS', 'Chalkboard SE', 'Marker Felt', sans-serif;
 }
 
 .hero-subtitle {
@@ -298,6 +303,7 @@ body::after {
     opacity: 0.95;
     font-weight: 700;
     color: white;
+    margin-top: 20px;
 }
 
 .scroll-hint {
@@ -544,7 +550,7 @@ body::after {
 }
 
 .commission-gallery {
-    margin-bottom: 48px;
+    margin-bottom: 96px;
 }
 
 .commission-slider {

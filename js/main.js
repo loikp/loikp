@@ -109,15 +109,18 @@ const commissionData = [
 const animationData = [
     {
         id: 1,
-        title: "动画作品1",
-        video: "videos/animation1.txt",
-        poster: "images/video-poster1.svg"
+        title: "【Undertale/meme】请给我50000G【正宗雪镇口音】",
+        bvid: "BV1wMZ2B2Etr"
     },
     {
         id: 2,
-        title: "动画作品2",
-        video: "videos/animation2.txt",
-        poster: "images/video-poster2.svg"
+        title: "鳝丝大碟在线跳【惊喜爱】¿",
+        bvid: "BV1qrfkBhEqz"
+    },
+    {
+        id: 3,
+        title: "《顶富》衫出没之sans快跑试玩",
+        bvid: "BV1mYw2zPEza"
     }
 ];
 
@@ -304,7 +307,7 @@ function initAnimationPlayer() {
             li.textContent = item.title;
             li.addEventListener('click', () => {
                 currentIndex = index;
-                video.src = `//player.bilibili.com/player.html?bvid=${item.bvid}`;
+                video.src = `//player.bilibili.com/player.html?bvid=${item.bvid}&danmaku=1`;
                 renderPlaylist();
             });
             playlist.appendChild(li);

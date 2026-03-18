@@ -99,13 +99,18 @@ const config = {
         items: [
             {
                 id: 1,
-                title: "动画作品1",
-                bvid: "BV1xx411c7mD"
+                title: "【Undertale/meme】请给我50000G【正宗雪镇口音】",
+                bvid: "BV1wMZ2B2Etr"
             },
             {
                 id: 2,
-                title: "动画作品2",
-                bvid: "BV1yy411c7mE"
+                title: "鳝丝大碟在线跳【惊喜爱】¿",
+                bvid: "BV1qrfkBhEqz"
+            },
+            {
+                id: 3,
+                title: "《顶富》衫出没之sans快跑试玩",
+                bvid: "BV1mYw2zPEza"
             }
         ]
     },
