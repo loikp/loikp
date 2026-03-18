@@ -106,24 +106,6 @@ const commissionData = [
     }
 ];
 
-const animationData = [
-    {
-        id: 1,
-        title: "【Undertale/meme】请给我50000G【正宗雪镇口音】",
-        bvid: "BV1wMZ2B2Etr"
-    },
-    {
-        id: 2,
-        title: "鳝丝大碟在线跳【惊喜爱】¿",
-        bvid: "BV1qrfkBhEqz"
-    },
-    {
-        id: 3,
-        title: "《顶富》衫出没之sans快跑试玩",
-        bvid: "BV1mYw2zPEza"
-    }
-];
-
 const merchData = [
     {
         id: 1,
@@ -301,7 +283,7 @@ function initAnimationPlayer() {
 
     function renderPlaylist() {
         playlist.innerHTML = '';
-        animationData.forEach((item, index) => {
+        config.animations.items.forEach((item, index) => {
             const li = document.createElement('li');
             li.className = `playlist-item ${index === currentIndex ? 'active' : ''}`;
             li.textContent = item.title;
