@@ -289,7 +289,7 @@ function initAnimationPlayer() {
             li.textContent = item.title;
             li.addEventListener('click', () => {
                 currentIndex = index;
-                video.src = `//player.bilibili.com/player.html?bvid=${item.bvid}&danmaku=1`;
+                video.src = `https://player.bilibili.com/player.html?bvid=${item.bvid}&page=1&high_quality=1&danmaku=1`;
                 renderPlaylist();
             });
             playlist.appendChild(li);
