@@ -345,6 +345,8 @@ function initComicReader() {
     const characterModal = document.getElementById('character-modal');
     const closeCharactersBtn = document.getElementById('close-characters');
     const characterGallery = document.getElementById('character-gallery');
+    const prevPageBtn = document.getElementById('prev-page');
+    const nextPageBtn = document.getElementById('next-page');
 
     function renderComicPages() {
         comicTrack.innerHTML = '';
@@ -366,12 +368,36 @@ function initComicReader() {
         pages.forEach((page, index) => {
             if (index + 1 === currentPage) {
                 page.classList.add('active');
-                page.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'center' });
+                const containerWidth = comicTrack.offsetWidth;
+                isProgrammaticScroll = true;
+                comicTrack.scrollTo({
+                    left: index * containerWidth,
+                    behavior: 'smooth'
+                });
+                setTimeout(() => {
+                    isProgrammaticScroll = false;
+                }, 500);
             } else {
                 page.classList.remove('active');
             }
         });
     }
+
+    prevPageBtn.addEventListener('click', () => {
+        if (currentPage > 1) {
+            currentPage--;
+            updateActivePage();
+            updatePageInfo();
+        }
+    });
+
+    nextPageBtn.addEventListener('click', () => {
+        if (currentPage < totalPages) {
+            currentPage++;
+            updateActivePage();
+            updatePageInfo();
+        }
+    });
 
     prevChapterBtn.addEventListener('click', () => {
         if (currentChapter > 1) {
@@ -427,7 +453,11 @@ function initComicReader() {
         }
     });
 
+    let isProgrammaticScroll = false;
+
     comicTrack.addEventListener('scroll', () => {
+        if (isProgrammaticScroll) return;
+        
         const scrollPosition = comicTrack.scrollLeft;
         const containerWidth = comicTrack.offsetWidth;
         const newPage = Math.round(scrollPosition / containerWidth) + 1;
@@ -444,6 +474,8 @@ function initComicReader() {
         totalPagesSpan.textContent = totalPages;
         prevChapterBtn.disabled = currentChapter === 1;
         nextChapterBtn.disabled = currentChapter === comicData.chapters.length;
+        prevPageBtn.disabled = currentPage === 1;
+        nextPageBtn.disabled = currentPage === totalPages;
     }
 
     renderComicPages();

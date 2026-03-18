@@ -901,6 +901,8 @@ body::after {
     padding: 40px;
     box-shadow: 0 12px 32px var(--shadow-lg);
     border: 4px solid var(--primary);
+    position: relative;
+    z-index: 1;
 }
 
 .comic-slider {
@@ -955,16 +957,25 @@ body::after {
 }
 
 .comic-btn {
-    padding: 12px 24px;
+    padding: 6px 12px;
     background: var(--primary);
     color: white;
     border: none;
-    border-radius: 12px;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 0.9rem;
+    font-size: 0.8rem;
     font-weight: 700;
     transition: all 0.3s;
     box-shadow: 0 4px 12px var(--shadow);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    position: relative;
+    z-index: 2;
+}
+
+.comic-btn svg {
+    pointer-events: none;
 }
 
 .comic-btn:hover {
@@ -995,6 +1006,40 @@ body::after {
     color: var(--text-muted);
     font-weight: 600;
     margin-top: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+}
+
+.comic-page-btn {
+    padding: 6px 12px;
+    background: var(--background-alt);
+    color: var(--text);
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: all 0.3s;
+    position: relative;
+    z-index: 2;
+}
+
+.comic-page-btn svg {
+    pointer-events: none;
+}
+
+.comic-page-btn:hover {
+    background: var(--primary);
+    color: white;
+    transform: translateY(-2px);
+}
+
+.comic-page-btn:disabled {
+    background: var(--border);
+    cursor: not-allowed;
+    transform: none;
 }
 
 .character-modal {
@@ -1325,6 +1370,31 @@ footer p {
     
     .about-image {
         margin-bottom: 16px;
+    }
+    
+    .avatar {
+        width: 180px;
+        height: 180px;
+    }
+    
+    .comic-btn {
+        padding: 5px 10px;
+        font-size: 0.75rem;
+        display: flex;
+        align-items: center;
+        gap: 3px;
+    }
+    
+    .comic-info {
+        gap: 10px;
+    }
+    
+    .comic-page-btn {
+        padding: 4px 8px;
+        font-size: 0.8rem;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     
     .animation-player {

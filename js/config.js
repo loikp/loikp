@@ -140,7 +140,7 @@ const config = {
         chapters: [
             {
                 id: 1,
-                title: "第一章",
+                title: "第1章",
                 pages: 10
             }
         ],
