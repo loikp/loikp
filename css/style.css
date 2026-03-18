@@ -958,7 +958,7 @@ body::after {
 
 .comic-btn {
     padding: 6px 12px;
-    background: var(--primary);
+    background: var(--primary, #ff6b35);
     color: white;
     border: none;
     border-radius: 6px;
@@ -966,7 +966,7 @@ body::after {
     font-size: 0.8rem;
     font-weight: 700;
     transition: all 0.3s;
-    box-shadow: 0 4px 12px var(--shadow);
+    box-shadow: 0 4px 12px var(--shadow, rgba(255, 107, 53, 0.2));
     display: flex;
     align-items: center;
     gap: 4px;
@@ -984,7 +984,7 @@ body::after {
 }
 
 .comic-btn:disabled {
-    background: var(--border);
+    background: var(--border, #ffcc00);
     cursor: not-allowed;
     transform: none;
 }
@@ -1014,9 +1014,9 @@ body::after {
 
 .comic-page-btn {
     padding: 6px 12px;
-    background: var(--background-alt);
-    color: var(--text);
-    border: 2px solid var(--border);
+    background: var(--background-alt, #fff3cd);
+    color: var(--text, #2d2d2d);
+    border: 2px solid var(--border, #ffcc00);
     border-radius: 8px;
     cursor: pointer;
     font-size: 0.9rem;
