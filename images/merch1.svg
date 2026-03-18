@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="500" height="500" viewBox="0 0 500 500">
+  <rect width="500" height="500" fill="#6366f1"/>
+  <text x="250" y="230" font-family="Arial, sans-serif" font-size="32" fill="white" text-anchor="middle">谷子1</text>
+  <text x="250" y="280" font-family="Arial, sans-serif" font-size="28" fill="white" text-anchor="middle">¥50</text>
+</svg>

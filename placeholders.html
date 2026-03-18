@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>生成占位图片</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 50px auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .placeholder {
+            display: inline-block;
+            margin: 10px;
+            text-align: center;
+        }
+        .placeholder img {
+            display: block;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+        }
+        .placeholder span {
+            display: block;
+            margin-top: 5px;
+            font-size: 12px;
+            color: #666;
+        }
+        h1 {
+            text-align: center;
+            color: #333;
+        }
+        .section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .section h2 {
+            color: #6366f1;
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
+<body>
+    <h1>占位图片生成器</h1>
+    <p>这些是用于测试的占位图片，请右键保存并替换为你的真实图片。</p>
+
+    <div class="section">
+        <h2>必需图片</h2>
+        <div class="placeholder">
+            <img src="https://placehold.co/300x300/6366f1/ffffff?text=Avatar" alt="头像" width="300" height="300">
+            <span>avatar.jpg (300x300)</span>
+        </div>
+        <div class="placeholder">
+            <img src="https://placehold.co/200x200/8b5cf6/ffffff?text=WeChat+QR" alt="微信赞赏码" width="200" height="200">
+            <span>wechat-qr.jpg (200x200)</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>绘画作品</h2>
+        <div class="placeholder">
+            <img src="https://placehold.co/800x600/6366f1/ffffff?text=Artwork+1" alt="作品1" width="400" height="300">
+            <span>artwork1.jpg</span>
+        </div>
+        <div class="placeholder">
+            <img src="https://placehold.co/600x800/8b5cf6/ffffff?text=Artwork+2" alt="作品2" width="300" height="400">
+            <span>artwork2.jpg</span>
+        </div>
+        <div class="placeholder">
+            <img src="https://placehold.co/800x800/a855f7/ffffff?text=Artwork+3" alt="作品3" width="400" height="400">
+            <span>artwork3.jpg</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>稿件示例</h2>
+        <div class="placeholder">
+            <img src="https://placehold.co/400x566/6366f1/ffffff?text=Commission+1" alt="稿件1" width="200" height="283">
+            <span>commission1.jpg (竖向A4)</span>
+        </div>
+        <div class="placeholder">
+            <img src="https://placehold.co/400x400/8b5cf6/ffffff?text=Commission+2" alt="稿件2" width="200" height="200">
+            <span>commission2.jpg (1:1)</span>
+        </div>
+        <div class="placeholder">
+            <img src="https://placehold.co/566x400/a855f7/ffffff?text=Commission+3" alt="稿件3" width="283" height="200">
+            <span>commission3.jpg (横向A4)</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>动画封面</h2>
+        <div class="placeholder">
+            <img src="https://placehold.co/1280x720/6366f1/ffffff?text=Video+Poster+1" alt="视频封面1" width="640" height="360">
+            <span>video-poster1.jpg</span>
+        </div>
+        <div class="placeholder">
+            <img src="https://placehold.co/1280x720/8b5cf6/ffffff?text=Video+Poster+2" alt="视频封面2" width="640" height="360">
+            <span>video-poster2.jpg</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>谷子</h2>
+        <div class="placeholder">
+            <img src="https://placehold.co/500x500/6366f1/ffffff?text=Merch+1" alt="谷子1" width="250" height="250">
+            <span>merch1.jpg</span>
+        </div>
+        <div class="placeholder">
+            <img src="https://placehold.co/500x500/8b5cf6/ffffff?text=Merch+2" alt="谷子2" width="250" height="250">
+            <span>merch2.jpg</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>漫画人设</h2>
+        <div class="placeholder">
+            <img src="https://placehold.co/600x800/6366f1/ffffff?text=Character+1" alt="角色1" width="300" height="400">
+            <span>character1.jpg</span>
+        </div>
+        <div class="placeholder">
+            <img src="https://placehold.co/600x800/8b5cf6/ffffff?text=Character+2" alt="角色2" width="300" height="400">
+            <span>character2.jpg</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>漫画页面</h2>
+        <div class="placeholder">
+            <img src="https://placehold.co/800x1200/6366f1/ffffff?text=Chapter+1+Page+1" alt="第1页" width="400" height="600">
+            <span>chapter1/page1.jpg</span>
+        </div>
+        <div class="placeholder">
+            <img src="https://placehold.co/800x1200/8b5cf6/ffffff?text=Chapter+1+Page+2" alt="第2页" width="400" height="600">
+            <span>chapter1/page2.jpg</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>资源</h2>
+        <div class="placeholder">
+            <img src="https://placehold.co/500x500/6366f1/ffffff?text=Resource+1" alt="资源1" width="250" height="250">
+            <span>resource1.jpg</span>
+        </div>
+        <div class="placeholder">
+            <img src="https://placehold.co/500x500/8b5cf6/ffffff?text=Resource+2" alt="资源2" width="250" height="250">
+            <span>resource2.jpg</span>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>使用说明</h2>
+        <ol>
+            <li>右键点击图片，选择"图片另存为"</li>
+            <li>保存到对应的目录（参考 README.md）</li>
+            <li>替换为你的真实图片</li>
+            <li>更新 js/main.js 中的数据</li>
+        </ol>
+    </div>
+</body>
+</html>

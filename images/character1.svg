@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="600" height="800" viewBox="0 0 600 800">
+  <rect width="600" height="800" fill="#6366f1"/>
+  <text x="300" y="380" font-family="Arial, sans-serif" font-size="48" fill="white" text-anchor="middle">角色A</text>
+  <text x="300" y="440" font-family="Arial, sans-serif" font-size="32" fill="white" text-anchor="middle">Character A</text>
+</svg>
