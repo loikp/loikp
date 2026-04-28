@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>伞与情感的代码雨</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; background-color: #3b7ced; touch-action: none; }
+    </style>
+</head>
+<body>
+<script>
+let charImg;
+let maskImg; 
+let smallRainLayer; 
+let collisionData; 
+
+let mainDrops = [];
+let smallDrops = [];
+
+let charX, charY, scaledW, scaledH; 
+let protectionScore = 0; 
+
+let lightningAlpha = 0; 
+let lightningPhase = 0; // 新增：0=无，1=第一次强闪，2=第二次弱闪
+
+// 纯英文 + 阿拉伯数字
+const charSet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+
+// 背景雨滴的颜色池：白色，淡蓝，淡粉
+const colorPool = [
+    {r: 255, g: 255, b: 255}, 
+    {r: 180, g: 220, b: 255}, 
+    {r: 255, g: 190, b: 205}  
+];
+
+function preload() {
+    charImg = loadImage('character.png'); 
+}
+
+function setup() {
+    createCanvas(windowWidth, windowHeight);
+    
+    // 保持最高清分辨率缩放
+    let scaleFactor = min(width / charImg.width, (height * 0.85) / charImg.height);
+    scaledW = Math.floor(charImg.width * scaleFactor); 
+    scaledH = Math.floor(charImg.height * scaleFactor);
+    
+    charX = width / 2 - scaledW / 2;
+    charY = height - scaledH;
+
+    // 隐形碰撞检测画布
+    collisionData = createGraphics(scaledW, scaledH);
+    collisionData.pixelDensity(1); 
+    collisionData.image(charImg, 0, 0, scaledW, scaledH);
+    collisionData.loadPixels();
+    
+    maskImg = createImage(scaledW, scaledH);
+    maskImg.loadPixels();
+    
+    // 提取蓝色遮罩 (用于生成内部文字)
+    for (let i = 0; i < collisionData.pixels.length; i += 4) {
+        let r = collisionData.pixels[i];
+        let g = collisionData.pixels[i+1];
+        let b = collisionData.pixels[i+2];
+        let a = collisionData.pixels[i+3];
+        
+        if (a > 0 && b > 150 && r < 120) {
+            maskImg.pixels[i] = 255;
+            maskImg.pixels[i+1] = 255;
+            maskImg.pixels[i+2] = 255;
+            maskImg.pixels[i+3] = 255;
+        } else {
+            maskImg.pixels[i+3] = 0;
+        }
+    }
+    maskImg.updatePixels();
+
+    smallRainLayer = createGraphics(scaledW, scaledH);
+    
+    let dropCount = width < 600 ? 120 : 250;
+    for (let i = 0; i < dropCount; i++) {
+        mainDrops.push(new Drop(false));
+    }
+}
+
+function draw() {
+    // 基础背景
+    background('#1400FF'); 
+
+    // ================= 打雷闪电效果 (两段式连闪) =================
+    // 偶尔触发闪电
+    if (lightningPhase === 0 && random(1) < 0.005) { 
+        lightningPhase = 1;
+        lightningAlpha = 255; // 第一次强光
+    }
+    
+    if (lightningPhase > 0) {
+        push();
+        noStroke();
+        // max(0, ...) 防止 alpha 为负数时出问题
+        fill(230, 245, 255, max(0, lightningAlpha)); 
+        rect(0, 0, width, height);
+        pop();
+        
+        if (lightningPhase === 1) {
+            lightningAlpha -= 50; // 第一次快速衰减
+            // 衰减到负数，是为了产生一到两帧的“黑屏停顿”，让两段闪光更有层次
+            if (lightningAlpha <= -30) { 
+                lightningPhase = 2;
+                lightningAlpha = 130; // 第二次较弱的闪光
+            }
+        } else if (lightningPhase === 2) {
+            lightningAlpha -= 25; // 第二次衰减稍慢
+            if (lightningAlpha <= 0) {
+                lightningPhase = 0; // 彻底结束
+            }
+        }
+    }
+    // ==============================================
+
+    // 1. 先画人物本体 (最底层)
+    image(charImg, charX, charY, scaledW, scaledH);
+
+    protectionScore = lerp(protectionScore, 100, 0.03); 
+
+    // 2. 再画情感小字雨 (夹在中间，盖在人物上，但在伞下)
+    if (protectionScore > 60) { 
+        smallRainLayer.clear();
+        
+        if (smallDrops.length < 60 && frameCount % 2 === 0) {
+            smallDrops.push(new Drop(true));
+        }
+        
+        for (let i = smallDrops.length - 1; i >= 0; i--) {
+            smallDrops[i].updateSmall();
+            smallDrops[i].showSmall(smallRainLayer);
+            if (smallDrops[i].y > scaledH) {
+                smallDrops.splice(i, 1);
+            }
+        }
+        
+        let maskedRain = smallRainLayer.get();
+        maskedRain.mask(maskImg);
+        
+        image(maskedRain, charX, charY);
+    } else {
+        smallDrops = []; 
+    }
+
+    // 3. 然后画雨伞 (上层，可以遮住人物和内部小字)
+    let uX = mouseX || width / 2;
+    let uY = (mouseY || height / 3) - 20;
+    drawElegantUmbrella(uX, uY);
+
+    // 4. 最后画大雨 (最上层)
+    for (let drop of mainDrops) {
+        drop.update(uX, uY); 
+        drop.show();
+    }
+}
+
+function touchMoved() { return false; }
+
+function drawElegantUmbrella(x, y) {
+    push();
+    translate(x, y);
+    
+    let R = 130; 
+    stroke('#151515');
+    strokeCap(SQUARE);
+    strokeWeight(6);
+    line(0, -40, 0, 70); 
+
+    strokeWeight(12); 
+    strokeCap(ROUND);
+    line(0, 70, 0, 95); 
+    noFill();
+    arc(-16, 95, 32, 32, 0, PI); 
+
+    strokeWeight(6);
+    line(0, -R, 0, -R - 10); 
+
+    fill('#151515'); 
+    noStroke();
+    beginShape();
+    for (let a = PI; a <= TWO_PI; a += 0.05) {
+        vertex(R * cos(a), R * sin(a));
+    }
+    
+    let p3x = R, p2x = R / 3, p1x = -R / 3, p0x = -R;
+    let ctrlY = -25;
+
+    quadraticVertex((p3x + p2x) / 2, ctrlY, p2x, 0); 
+    quadraticVertex((p2x + p1x) / 2, ctrlY, p1x, 0); 
+    quadraticVertex((p1x + p0x) / 2, ctrlY, p0x, 0); 
+    endShape(CLOSE);
+
+    noFill();
+    stroke('#5c78a1'); 
+    strokeWeight(2);
+    
+    beginShape();
+    vertex(0, -R);
+    quadraticVertex(-R * 0.45, -R * 0.55, p1x, 0);
+    endShape();
+
+    beginShape();
+    vertex(0, -R);
+    quadraticVertex(R * 0.45, -R * 0.55, p2x, 0);
+    endShape();
+    
+    pop();
+}
+
+function getRandomChar() {
+    return charSet.charAt(Math.floor(Math.random() * charSet.length));
+}
+
+class Drop {
+    constructor(isSmall) {
+        this.isSmall = isSmall;
+        if (!isSmall) {
+            this.x = random(width);
+            this.y = random(-500, -50);
+            this.speed = random(6, 16);
+            this.char = getRandomChar(); 
+            this.bounced = false;
+            this.vx = 0; 
+            
+            this.baseColor = random(colorPool);
+            this.history = [];
+        } else {
+            this.x = random(scaledW);
+            this.y = random(-20, 0);
+            this.speed = random(1.5, 3);
+            this.char = 'heh.'; 
+        }
+    }
+
+    update(uX, uY) {
+        this.history.push({x: this.x, y: this.y});
+        if (this.history.length > 4) {
+            this.history.shift();
+        }
+
+        if (this.bounced) {
+            this.x += this.vx;
+            this.y += this.speed;
+            this.speed += 0.5; 
+        } else {
+            this.y += this.speed;
+            
+            let d = dist(this.x, this.y, uX, uY - 60); 
+            if (d < 130 && this.y < uY && this.y > uY - 130) {
+                let offset = this.x - uX;
+                this.bounce(offset);
+                return;
+            }
+
+            let lookAheadY = this.y + this.speed + 12; 
+            
+            if (lookAheadY > charY && lookAheadY < charY + scaledH && this.x > charX && this.x < charX + scaledW) {
+                let localX = floor(this.x - charX);
+                let localY = floor(lookAheadY - charY);
+                let index = (localY * collisionData.width + localX) * 4;
+                
+                let r = collisionData.pixels[index];
+                let b = collisionData.pixels[index + 2];
+                let a = collisionData.pixels[index + 3];
+                
+                if (a > 50 && r > 180 && b > 180) {
+                    let centerX = charX + scaledW / 2;
+                    let offsetX = this.x - centerX;
+                    
+                    this.bounce(offsetX); 
+                    protectionScore -= 2; 
+                    if(protectionScore < 0) protectionScore = 0;
+                }
+            }
+        }
+
+        if (this.y > height) {
+            this.y = random(-200, -50);
+            this.x = random(width);
+            this.speed = random(6, 16);
+            this.bounced = false;
+            this.vx = 0;
+            this.char = getRandomChar(); 
+            this.history = []; 
+        }
+    }
+
+    bounce(offsetX) {
+        this.bounced = true;
+        let direction = offsetX > 0 ? 1 : -1; 
+        this.vx = direction * random(4, 9); 
+        this.speed = -random(5, 8); 
+        this.y -= 15; 
+    }
+
+    show() {
+        textSize(15); 
+        textAlign(CENTER, CENTER);
+
+        for (let i = 0; i < this.history.length; i++) {
+            let pos = this.history[i];
+            let alpha = map(i, 0, this.history.length - 1, 0, 180);
+            if (this.bounced) alpha *= 0.6; 
+            
+            fill(this.baseColor.r, this.baseColor.g, this.baseColor.b, alpha);
+            text(this.char, pos.x, pos.y);
+        }
+
+        fill(this.baseColor.r, this.baseColor.g, this.baseColor.b, this.bounced ? 150 : 255);
+        text(this.char, this.x, this.y);
+    }
+
+    updateSmall() {
+        this.y += this.speed;
+    }
+
+    showSmall(layer) {
+        layer.fill('#ffffff'); 
+        layer.textSize(16); 
+        layer.textAlign(CENTER, CENTER);
+        layer.text(this.char, this.x, this.y);
+    }
+}
+</script>
+</body>
+</html>
