@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>𝖎𝖙'𝖘 𝖗𝖆𝖎𝖓𝖎𝖓𝖌 𝖘𝖔𝖒𝖊𝖜𝖍𝖊𝖗𝖊 𝖊𝖑𝖘𝖊</title>
+    <title>*𝖎𝖙'𝖘 𝖗𝖆𝖎𝖓𝖎𝖓𝖌 𝖘𝖔𝖒𝖊𝖜𝖍𝖊𝖗𝖊 𝖊𝖑𝖘𝖊</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
     <style>
         body { margin: 0; padding: 0; overflow: hidden; background-color: #3b7ced; touch-action: none; }
@@ -44,8 +44,8 @@ function setup() {
     createCanvas(windowWidth, windowHeight);
     
     // 1. 人物缩放调整：手机上留出更多空间
-    let maxCharW = width < 600 ? width * 0.65 : width * 0.4; // 手机上宽度占65%，电脑上占40%
-    let maxCharH = height * 0.6; // 高度最多占60%
+    let maxCharW = width < 600 ? width * 0.70 : width * 0.4; // 手机上宽度占65%，电脑上占40%
+    let maxCharH = height * 0.65; // 高度最多占60%
     let scaleFactor = min(maxCharW / charImg.width, maxCharH / charImg.height);
     
     scaledW = Math.floor(charImg.width * scaleFactor); 
