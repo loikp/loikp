@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>伞与情感的代码雨</title>
+    <title>𝖎𝖙'𝖘 𝖗𝖆𝖎𝖓𝖎𝖓𝖌 𝖘𝖔𝖒𝖊𝖜𝖍𝖊𝖗𝖊 𝖊𝖑𝖘𝖊</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
     <style>
         body { margin: 0; padding: 0; overflow: hidden; background-color: #3b7ced; touch-action: none; }
@@ -23,12 +23,13 @@ let charX, charY, scaledW, scaledH;
 let protectionScore = 0; 
 
 let lightningAlpha = 0; 
-let lightningPhase = 0; // 新增：0=无，1=第一次强闪，2=第二次弱闪
+let lightningPhase = 0; 
 
-// 纯英文 + 阿拉伯数字
+let uScale = 1; // 雨伞的缩放比例
+let smallTextSize = 16; // 内部 heh 的文字大小
+
 const charSet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
 
-// 背景雨滴的颜色池：白色，淡蓝，淡粉
 const colorPool = [
     {r: 255, g: 255, b: 255}, 
     {r: 180, g: 220, b: 255}, 
@@ -42,13 +43,25 @@ function preload() {
 function setup() {
     createCanvas(windowWidth, windowHeight);
     
-    // 保持最高清分辨率缩放
-    let scaleFactor = min(width / charImg.width, (height * 0.85) / charImg.height);
+    // 1. 人物缩放调整：手机上留出更多空间
+    let maxCharW = width < 600 ? width * 0.65 : width * 0.4; // 手机上宽度占65%，电脑上占40%
+    let maxCharH = height * 0.6; // 高度最多占60%
+    let scaleFactor = min(maxCharW / charImg.width, maxCharH / charImg.height);
+    
     scaledW = Math.floor(charImg.width * scaleFactor); 
     scaledH = Math.floor(charImg.height * scaleFactor);
     
     charX = width / 2 - scaledW / 2;
     charY = height - scaledH;
+
+    // 2. 响应式调整雨伞和内部文字大小
+    if (width < 600) {
+        uScale = 0.6;
+        smallTextSize = 11; // 手机上 heh. 缩小到 11
+    } else {
+        uScale = 0.85;
+        smallTextSize = 16;
+    }
 
     // 隐形碰撞检测画布
     collisionData = createGraphics(scaledW, scaledH);
@@ -59,7 +72,7 @@ function setup() {
     maskImg = createImage(scaledW, scaledH);
     maskImg.loadPixels();
     
-    // 提取蓝色遮罩 (用于生成内部文字)
+    // 提取蓝色遮罩
     for (let i = 0; i < collisionData.pixels.length; i += 4) {
         let r = collisionData.pixels[i];
         let g = collisionData.pixels[i+1];
@@ -86,46 +99,42 @@ function setup() {
 }
 
 function draw() {
-    // 基础背景
     background('#1400FF'); 
 
-    // ================= 打雷闪电效果 (两段式连闪) =================
-    // 偶尔触发闪电
+    // ================= 打雷闪电效果 =================
     if (lightningPhase === 0 && random(1) < 0.005) { 
         lightningPhase = 1;
-        lightningAlpha = 255; // 第一次强光
+        lightningAlpha = 255; 
     }
     
     if (lightningPhase > 0) {
         push();
         noStroke();
-        // max(0, ...) 防止 alpha 为负数时出问题
         fill(230, 245, 255, max(0, lightningAlpha)); 
         rect(0, 0, width, height);
         pop();
         
         if (lightningPhase === 1) {
-            lightningAlpha -= 50; // 第一次快速衰减
-            // 衰减到负数，是为了产生一到两帧的“黑屏停顿”，让两段闪光更有层次
+            lightningAlpha -= 50; 
             if (lightningAlpha <= -30) { 
                 lightningPhase = 2;
-                lightningAlpha = 130; // 第二次较弱的闪光
+                lightningAlpha = 130; 
             }
         } else if (lightningPhase === 2) {
-            lightningAlpha -= 25; // 第二次衰减稍慢
+            lightningAlpha -= 25; 
             if (lightningAlpha <= 0) {
-                lightningPhase = 0; // 彻底结束
+                lightningPhase = 0; 
             }
         }
     }
     // ==============================================
 
-    // 1. 先画人物本体 (最底层)
+    // 1. 人物本体
     image(charImg, charX, charY, scaledW, scaledH);
 
     protectionScore = lerp(protectionScore, 100, 0.03); 
 
-    // 2. 再画情感小字雨 (夹在中间，盖在人物上，但在伞下)
+    // 2. 情感小字雨
     if (protectionScore > 60) { 
         smallRainLayer.clear();
         
@@ -149,12 +158,12 @@ function draw() {
         smallDrops = []; 
     }
 
-    // 3. 然后画雨伞 (上层，可以遮住人物和内部小字)
+    // 3. 雨伞 (加入缩放)
     let uX = mouseX || width / 2;
     let uY = (mouseY || height / 3) - 20;
-    drawElegantUmbrella(uX, uY);
+    drawElegantUmbrella(uX, uY, uScale);
 
-    // 4. 最后画大雨 (最上层)
+    // 4. 大雨
     for (let drop of mainDrops) {
         drop.update(uX, uY); 
         drop.show();
@@ -163,9 +172,10 @@ function draw() {
 
 function touchMoved() { return false; }
 
-function drawElegantUmbrella(x, y) {
+function drawElegantUmbrella(x, y, s) {
     push();
     translate(x, y);
+    scale(s); // 缩放雨伞视觉大小
     
     let R = 130; 
     stroke('#151515');
@@ -252,8 +262,12 @@ class Drop {
         } else {
             this.y += this.speed;
             
-            let d = dist(this.x, this.y, uX, uY - 60); 
-            if (d < 130 && this.y < uY && this.y > uY - 130) {
+            // 伞的碰撞检测同步加入 uScale 计算
+            let uRadius = 130 * uScale;
+            let uCenterY = uY - 60 * uScale;
+            let d = dist(this.x, this.y, uX, uCenterY); 
+            
+            if (d < uRadius && this.y < uY && this.y > uY - uRadius) {
                 let offset = this.x - uX;
                 this.bounce(offset);
                 return;
@@ -323,7 +337,7 @@ class Drop {
 
     showSmall(layer) {
         layer.fill('#ffffff'); 
-        layer.textSize(16); 
+        layer.textSize(smallTextSize); // 应用缩放后的文字大小
         layer.textAlign(CENTER, CENTER);
         layer.text(this.char, this.x, this.y);
     }
