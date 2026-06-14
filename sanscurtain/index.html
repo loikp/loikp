@@ -1,0 +1,1036 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
+
+  <style>
+    @font-face {
+      font-family: 'DialogueFont';
+      src: url('./FZSEJW.TTF') format('truetype');
+      font-weight: normal;
+      font-style: normal;
+    }
+
+    html,
+    body {
+      margin: 0;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: #ffffff;
+      touch-action: none;
+    }
+
+    #videoBox {
+      position: fixed;
+      overflow: hidden;
+      z-index: 1;
+      pointer-events: none;
+      background: transparent;
+    }
+
+    #bgVideo {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      left: 0;
+      top: 0;
+      pointer-events: none;
+    }
+
+    canvas {
+      position: fixed;
+      left: 0;
+      top: 0;
+      z-index: 2;
+      display: block;
+      pointer-events: auto;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="videoBox">
+    <video
+      id="bgVideo"
+      autoplay
+      muted
+      loop
+      playsinline
+      webkit-playsinline
+      preload="auto"
+    ></video>
+  </div>
+
+  <script>
+    const VIDEO_SRC = './video.mp4';
+
+    const USE_EXAMPLE_MASK = false;
+    const MASK_SRC = './mask.png';
+
+    let maskImg;
+
+    const IMG_SCALE = 0.85;
+
+    const ROW_SPACING = 2;
+    const COL_SPACING = 5;
+    const LINE_WEIGHT = 5.5;
+
+    const COLOR_BLUE = '#1e90ff';
+    const COLOR_PINK = '#ff69b4';
+
+    const SAFE_MARGIN = 30;
+
+    /*
+      对话框参数
+    */
+    const DIALOGUE_FONT_FAMILY = 'DialogueFont';
+
+    const DIALOGUE_BOX_EXPAND_MS = 850;
+    const DIALOGUE_TYPE_SPEED_MS = 85;
+    const DIALOGUE_HOLD_MS = 2600;
+    const DIALOGUE_FADE_MS = 500;
+
+    /*
+      最后一句话的对话框消失后，等待多久盖住视频。
+      3000 = 3 秒
+    */
+    const FINAL_COVER_DELAY_MS = 2000;
+
+    /*
+      对话框在视频里的位置。
+      y 越大越往下。
+    */
+    const DIALOGUE_POS_X = 0.5;
+    const DIALOGUE_POS_Y = 0.88;
+
+    /*
+      检测掀开帘子的区域。
+      这个区域在视频中间偏下。
+    */
+    const REVEAL_CHECK_POS_X = 0.5;
+    const REVEAL_CHECK_POS_Y = 0.78;
+    const REVEAL_CHECK_WIDTH_RATIO = 0.62;
+    const REVEAL_CHECK_HEIGHT_RATIO = 0.28;
+
+    /*
+      这次只看横向拨动距离，避免帘子自己下垂导致误触发。
+      如果太难触发，改小，比如 14。
+      如果太容易触发，改大，比如 28。
+    */
+    const REVEAL_HORIZONTAL_THRESHOLD = 20;
+
+    /*
+      触发区域内至少有多少比例的节点被横向拨开。
+      如果太难触发，改小，比如 0.18。
+      如果太容易触发，改大，比如 0.35。
+    */
+    const REVEAL_NODE_RATIO_THRESHOLD = 0.25;
+
+    /*
+      对话内容。
+      每次掀开帘子，只触发下一句。
+    */
+    const dialogueLines = [
+      '* 你终于注意到帘子后面了。',
+      '* 别急着合上，和我聊聊呗。',
+      '* 比如，你认识我多久了？',
+      '* ......',
+      '* 嘿，怎么没反应？',
+      '* 噢，我忘了这里没有输入框。',
+      '* 看来你只能......',
+      '* 听我在这讲单口相声了。',
+      '* 行吧，那我就继续了。',
+      '* 你知道骷髅怎么发短信吗？',
+      '* 用“骨”传导。......',
+      '* ......',
+      '* 呵。看不见你的反应......',
+      '* 确实有点没劲。',
+      '* 那我懒得讲了。',
+      '* 除非你再掀一次帘子。',
+      '* 算了。你也不差这一次。',
+      '* 手挺诚实，你刚刚已经掀了。',
+      '* 帘子都快被你薅秃了。',
+      '* 手不酸吗？我看着都累。',
+      '* 掀两三次是好奇，',
+      '* 那掀二十多次呢？',
+      '* 你这叫热情还是手欠？',
+      '* 呃，或者说，',
+      '* 充满了“决心”？',
+      '* 你就没更重要的事要做吗？',
+      '* 比如关掉网页，去倒杯水。',
+      '* 或者看看窗外有没有人。',
+      '* 你身后有什么在盯着你。',
+      '* 哈哈。开玩笑的。',
+      '* 再掀下去，绳子要断了。',
+      '* 算了，你开心就好。',
+      '* 别掀了，帘子后面要换人了。',
+      '* 骗你的，我脚都没抬。',
+      '* 你犹豫的样子比掀这有意思。',
+      '* 三秒后你会再掀一次。',
+      '* 三、二、一......',
+      '* 看吧。还说不信。',
+      '* 不过我真的要走了。',
+      '* 你忍心看我的弟弟没骨陪吗？',
+      '* 这次可别掀帘子追出来。',
+      '* 反正你也就敢隔着屏幕掀。',
+      '* 走之前说句实话——',
+      '* 你挺无聊的，我也是。',
+      '* 合上吧。梦该醒了。'
+    ];
+
+    let currentDialogueIndex = 0;
+    let dialogueShowing = false;
+    let dialogueLineStartTime = 0;
+    let currentDialogueText = '';
+
+    /*
+      最后一句对话结束后的白色遮罩状态
+    */
+    let finalDialogueFinishedTime = -1;
+    let finalCoverVisible = false;
+
+    /*
+      防止一次持续拨动连续触发多句。
+      必须松开后，再次掀开，才会触发下一句。
+    */
+    let revealLocked = false;
+
+    /*
+      物理参数。
+      这版重点是：自然下垂、能恢复、不明显拉长。
+    */
+    const GRAVITY = 0.22;
+    const DAMPING = 0.965;
+
+    const HORIZONTAL_RETURN_FORCE = 0.004;
+    const VERTICAL_SETTLE_FORCE = 0.003;
+
+    const MOUSE_RADIUS = 100;
+    const MOUSE_FORCE = 0.6;
+
+    const CONSTRAINT_ITERATIONS = 12;
+
+    /*
+      true：只有按住鼠标/触摸时才拨动。
+      false：鼠标悬停也会拨动。
+    */
+    const INTERACT_ONLY_WHEN_PRESSED = true;
+
+    let curtains = [];
+
+    let offsetX;
+    let offsetY;
+    let actualWidth;
+    let actualHeight;
+
+    let bgVideo;
+    let videoBox;
+
+    function setup() {
+      createCanvas(windowWidth, windowHeight);
+
+      setupMask();
+
+      bgVideo = document.getElementById('bgVideo');
+      videoBox = document.getElementById('videoBox');
+
+      setupVideo();
+      generateCurtains();
+      updateVideoLayout();
+    }
+
+    function setupMask() {
+      if (USE_EXAMPLE_MASK) {
+        maskImg = createImage(900, 1000);
+        maskImg.loadPixels();
+
+        for (let y = 0; y < maskImg.height; y++) {
+          for (let x = 0; x < maskImg.width; x++) {
+            let inside = false;
+
+            let dx1 = x - 450;
+            let dy1 = y - 360;
+            if (dx1 * dx1 + dy1 * dy1 < 180 * 180) {
+              inside = true;
+            }
+
+            if (roundedRectMask(x, y, 260, 520, 380, 190, 90)) {
+              inside = true;
+            }
+
+            let dx2 = (x - 450) / 215;
+            let dy2 = (y - 850) / 145;
+            if (dx2 * dx2 + dy2 * dy2 < 1) {
+              inside = true;
+            }
+
+            let index = 4 * (y * maskImg.width + x);
+
+            maskImg.pixels[index + 0] = 0;
+            maskImg.pixels[index + 1] = 0;
+            maskImg.pixels[index + 2] = 0;
+            maskImg.pixels[index + 3] = inside ? 255 : 0;
+          }
+        }
+
+        maskImg.updatePixels();
+        maskImg.loadPixels();
+      } else {
+        loadImage(
+          MASK_SRC,
+          function(img) {
+            maskImg = img;
+            maskImg.loadPixels();
+          },
+          function() {
+            maskImg = null;
+          }
+        );
+      }
+    }
+
+    function roundedRectMask(px, py, x, y, w, h, r) {
+      let cx = constrain(px, x + r, x + w - r);
+      let cy = constrain(py, y + r, y + h - r);
+      let dx = px - cx;
+      let dy = py - cy;
+      return dx * dx + dy * dy <= r * r;
+    }
+
+    function setupVideo() {
+      bgVideo.src = VIDEO_SRC;
+
+      bgVideo.muted = true;
+      bgVideo.defaultMuted = true;
+      bgVideo.volume = 0;
+      bgVideo.loop = true;
+      bgVideo.autoplay = true;
+      bgVideo.playsInline = true;
+
+      bgVideo.setAttribute('muted', '');
+      bgVideo.setAttribute('autoplay', '');
+      bgVideo.setAttribute('loop', '');
+      bgVideo.setAttribute('playsinline', '');
+      bgVideo.setAttribute('webkit-playsinline', '');
+
+      bgVideo.load();
+      playVideo();
+    }
+
+    function playVideo() {
+      if (!bgVideo) return;
+
+      /*
+        白色遮罩出现后，不再重新播放视频。
+      */
+      if (finalCoverVisible) return;
+
+      bgVideo.muted = true;
+      bgVideo.defaultMuted = true;
+      bgVideo.volume = 0;
+
+      const p = bgVideo.play();
+
+      if (p !== undefined) {
+        p.catch(function() {});
+      }
+    }
+
+    function generateCurtains() {
+      let targetRatio = 9 / 10;
+
+      let maxW = min(windowWidth * 0.9, windowWidth - SAFE_MARGIN * 2);
+      let maxH = windowHeight * 0.75;
+
+      let boxWidth;
+      let boxHeight;
+
+      if (maxW / maxH > targetRatio) {
+        boxHeight = maxH;
+        boxWidth = boxHeight * targetRatio;
+      } else {
+        boxWidth = maxW;
+        boxHeight = boxWidth / targetRatio;
+      }
+
+      let cols = floor(boxWidth / COL_SPACING);
+      actualWidth = cols * COL_SPACING;
+
+      let targetHeight = actualWidth / targetRatio;
+
+      let rows = floor(targetHeight / ROW_SPACING) + 1;
+      actualHeight = (rows - 1) * ROW_SPACING;
+
+      offsetX = (windowWidth - actualWidth) / 2;
+      offsetY = (windowHeight - actualHeight) / 2;
+
+      curtains = [];
+
+      for (let i = 0; i < cols; i++) {
+        let baseX = offsetX + i * COL_SPACING + COL_SPACING / 2;
+        curtains.push(new StringCurtain(baseX, offsetY, rows));
+      }
+    }
+
+    function updateVideoLayout() {
+      let videoW = actualWidth * IMG_SCALE;
+      let videoH = actualHeight * IMG_SCALE;
+
+      let videoX = offsetX + (actualWidth - videoW) / 2;
+      let videoY = offsetY + (actualHeight - videoH) / 2;
+
+      videoBox.style.left = videoX + 'px';
+      videoBox.style.top = videoY + 'px';
+      videoBox.style.width = videoW + 'px';
+      videoBox.style.height = videoH + 'px';
+    }
+
+    function draw() {
+      clear();
+
+      /*
+        先更新帘子物理。
+      */
+      for (let i = 0; i < curtains.length; i++) {
+        curtains[i].update();
+      }
+
+      /*
+        根据当前拨动状态，判断是否触发下一句。
+      */
+      updateDialogueTrigger();
+
+      /*
+        先画对话框。
+        因为 canvas 在 video 上方，所以对话框会在 video 上方；
+        但帘子后画，所以帘子会盖住对话框。
+      */
+      drawCurrentDialogue();
+
+      /*
+        最后一句对话框消失 3 秒后，画白色矩形盖住视频。
+        注意：这里在帘子之前画，所以白色矩形会在视频上方、帘子下方。
+      */
+      drawFinalWhiteCover();
+
+      /*
+        最后画帘子。
+      */
+      for (let i = 0; i < curtains.length; i++) {
+        curtains[i].display();
+      }
+    }
+
+    /*
+      每次真正掀开帘子，只触发下一句。
+    */
+    function updateDialogueTrigger() {
+      let interactingNow = hasInteraction();
+
+      /*
+        没有按住 / 没有触摸，就解除锁定。
+        下一次重新掀开才可以触发下一句。
+      */
+      if (!interactingNow) {
+        revealLocked = false;
+        return;
+      }
+
+      /*
+        当前对话还在显示时，不允许触发下一句。
+      */
+      if (dialogueShowing) {
+        return;
+      }
+
+      /*
+        所有句子都显示完后，不再触发。
+      */
+      if (currentDialogueIndex >= dialogueLines.length) {
+        return;
+      }
+
+      /*
+        一次按住期间已经触发过了，不再继续触发。
+      */
+      if (revealLocked) {
+        return;
+      }
+
+      /*
+        必须指针在检测区域附近，并且帘子被横向拨开。
+      */
+      if (isPointerInsideRevealArea() && isDialogueAreaRevealed()) {
+        triggerNextDialogue();
+        revealLocked = true;
+      }
+    }
+
+    function triggerNextDialogue() {
+      currentDialogueText = dialogueLines[currentDialogueIndex];
+      currentDialogueIndex++;
+
+      dialogueShowing = true;
+      dialogueLineStartTime = millis();
+    }
+
+    function isPointerInsideRevealArea() {
+      if (!videoBox) return false;
+
+      let rect = videoBox.getBoundingClientRect();
+
+      let checkCenterX = rect.left + rect.width * REVEAL_CHECK_POS_X;
+      let checkCenterY = rect.top + rect.height * REVEAL_CHECK_POS_Y;
+
+      let checkW = rect.width * REVEAL_CHECK_WIDTH_RATIO;
+      let checkH = rect.height * REVEAL_CHECK_HEIGHT_RATIO;
+
+      let left = checkCenterX - checkW / 2;
+      let right = checkCenterX + checkW / 2;
+      let top = checkCenterY - checkH / 2;
+      let bottom = checkCenterY + checkH / 2;
+
+      let px = getInteractX();
+      let py = getInteractY();
+
+      return px >= left && px <= right && py >= top && py <= bottom;
+    }
+
+    /*
+      这里只检测横向位移 abs(node.x - node.baseX)。
+      不检测纵向位移，避免帘子自然下垂导致网页加载后误触发。
+    */
+    function isDialogueAreaRevealed() {
+      if (!videoBox) return false;
+
+      let rect = videoBox.getBoundingClientRect();
+
+      let checkCenterX = rect.left + rect.width * REVEAL_CHECK_POS_X;
+      let checkCenterY = rect.top + rect.height * REVEAL_CHECK_POS_Y;
+
+      let checkW = rect.width * REVEAL_CHECK_WIDTH_RATIO;
+      let checkH = rect.height * REVEAL_CHECK_HEIGHT_RATIO;
+
+      let left = checkCenterX - checkW / 2;
+      let right = checkCenterX + checkW / 2;
+      let top = checkCenterY - checkH / 2;
+      let bottom = checkCenterY + checkH / 2;
+
+      let movedCount = 0;
+      let totalCount = 0;
+
+      for (let c = 0; c < curtains.length; c++) {
+        let nodes = curtains[c].nodes;
+
+        for (let i = 1; i < nodes.length; i++) {
+          let node = nodes[i];
+
+          if (
+            node.baseX >= left &&
+            node.baseX <= right &&
+            node.baseY >= top &&
+            node.baseY <= bottom
+          ) {
+            totalCount++;
+
+            let horizontalMove = abs(node.x - node.baseX);
+
+            if (horizontalMove >= REVEAL_HORIZONTAL_THRESHOLD) {
+              movedCount++;
+            }
+          }
+        }
+      }
+
+      if (totalCount === 0) {
+        return false;
+      }
+
+      let movedRatio = movedCount / totalCount;
+
+      return movedRatio >= REVEAL_NODE_RATIO_THRESHOLD;
+    }
+
+    function drawCurrentDialogue() {
+      if (!dialogueShowing) return;
+      if (!videoBox) return;
+
+      let now = millis();
+      let localTime = now - dialogueLineStartTime;
+
+      let totalTypeTime = currentDialogueText.length * DIALOGUE_TYPE_SPEED_MS;
+      let totalDuration =
+        DIALOGUE_BOX_EXPAND_MS +
+        totalTypeTime +
+        DIALOGUE_HOLD_MS +
+        DIALOGUE_FADE_MS;
+
+      if (localTime > totalDuration) {
+        dialogueShowing = false;
+        currentDialogueText = '';
+
+        /*
+          如果这是最后一句对话结束，
+          记录它结束的时间。
+        */
+        if (
+          currentDialogueIndex >= dialogueLines.length &&
+          finalDialogueFinishedTime < 0
+        ) {
+          finalDialogueFinishedTime = millis();
+        }
+
+        return;
+      }
+
+      let rect = videoBox.getBoundingClientRect();
+
+      let centerX = rect.left + rect.width * DIALOGUE_POS_X;
+      let centerY = rect.top + rect.height * DIALOGUE_POS_Y;
+
+      drawExpandingTypewriterBox(
+        centerX,
+        centerY,
+        currentDialogueText,
+        localTime,
+        rect.width
+      );
+    }
+
+    function drawFinalWhiteCover() {
+      if (!videoBox) return;
+
+      /*
+        最后一句还没结束，不画。
+      */
+      if (finalDialogueFinishedTime < 0) {
+        return;
+      }
+
+      /*
+        最后一句结束后，等待 3 秒。
+      */
+      let elapsed = millis() - finalDialogueFinishedTime;
+
+      if (elapsed < FINAL_COVER_DELAY_MS) {
+        return;
+      }
+
+      /*
+        白色遮罩第一次出现时，暂停视频。
+      */
+      if (!finalCoverVisible) {
+        finalCoverVisible = true;
+
+        if (bgVideo) {
+          bgVideo.pause();
+        }
+      }
+
+      /*
+        画一个和视频区域一样大的白色矩形。
+        由于 canvas 在 video 上方，所以它会盖住视频。
+        又因为帘子在它后面绘制，所以帘子会盖住这个白色矩形。
+      */
+      let rectInfo = videoBox.getBoundingClientRect();
+
+      push();
+      noStroke();
+      fill(255);
+      rectMode(CORNER);
+      rect(rectInfo.left, rectInfo.top, rectInfo.width, rectInfo.height);
+      pop();
+    }
+
+    function drawExpandingTypewriterBox(x, y, textContent, localTime, videoWidth) {
+      push();
+
+      textFont(DIALOGUE_FONT_FAMILY);
+      textSize(getDialogueTextSize());
+      textAlign(CENTER, CENTER);
+
+      let paddingX = 36;
+      let targetTextW = textWidth(textContent);
+      let targetBoxW = targetTextW + paddingX * 2;
+
+      let maxBoxW = videoWidth * 0.9;
+      targetBoxW = min(targetBoxW, maxBoxW);
+
+      let boxH = getDialogueBoxHeight();
+
+      let expandProgress = constrain(localTime / DIALOGUE_BOX_EXPAND_MS, 0, 1);
+      expandProgress = easeOutCubic(expandProgress);
+
+      let currentBoxW = targetBoxW * expandProgress;
+
+      let typingStart = DIALOGUE_BOX_EXPAND_MS;
+      let typingTime = max(localTime - typingStart, 0);
+
+      let visibleCount = floor(typingTime / DIALOGUE_TYPE_SPEED_MS);
+      visibleCount = constrain(visibleCount, 0, textContent.length);
+
+      let visibleText = textContent.substring(0, visibleCount);
+
+      let fadeAlpha = 255;
+
+      let totalTypeTime = textContent.length * DIALOGUE_TYPE_SPEED_MS;
+      let disappearStart =
+        DIALOGUE_BOX_EXPAND_MS +
+        totalTypeTime +
+        DIALOGUE_HOLD_MS;
+
+      if (localTime > disappearStart) {
+        fadeAlpha = map(localTime, disappearStart, disappearStart + DIALOGUE_FADE_MS, 255, 0);
+        fadeAlpha = constrain(fadeAlpha, 0, 255);
+      }
+
+      translate(x, y);
+      rectMode(CENTER);
+
+      /*
+        黑色底色，直角，无阴影，无小三角。
+        白色 2mm 粗边框。
+      */
+      fill(0, 0, 0, fadeAlpha);
+      stroke(255, 255, 255, fadeAlpha);
+      strokeWeight(mmToPx(2));
+      rect(0, 0, currentBoxW, boxH);
+
+      /*
+        文字。
+      */
+      if (expandProgress > 0.82) {
+        noStroke();
+        fill(255, 255, 255, fadeAlpha);
+        text(visibleText, 0, 1);
+
+        /*
+          打字机光标。
+        */
+        if (visibleCount < textContent.length) {
+          let cursorBlink = floor(millis() / 350) % 2 === 0;
+
+          if (cursorBlink) {
+            let cursorX = textWidth(visibleText) / 2 + 8;
+            stroke(255, 255, 255, fadeAlpha);
+            strokeWeight(2);
+            line(cursorX, -12, cursorX, 13);
+          }
+        }
+      }
+
+      pop();
+    }
+
+    function getDialogueTextSize() {
+      if (windowWidth < 500) {
+        return 16;
+      }
+
+      if (windowWidth < 900) {
+        return 18;
+      }
+
+      return 22;
+    }
+
+    function getDialogueBoxHeight() {
+      if (windowWidth < 500) {
+        return 54;
+      }
+
+      if (windowWidth < 900) {
+        return 62;
+      }
+
+      return 70;
+    }
+
+    function mmToPx(mm) {
+      return mm * 96 / 25.4;
+    }
+
+    function easeOutCubic(t) {
+      return 1 - pow(1 - t, 3);
+    }
+
+    function sampleMaskColor(maskX, maskY) {
+      if (!maskImg || !maskImg.pixels || maskImg.pixels.length === 0) {
+        return false;
+      }
+
+      let u = (maskX - offsetX) / actualWidth;
+      let v = (maskY - offsetY) / actualHeight;
+
+      if (u < 0 || u > 1 || v < 0 || v > 1) {
+        return false;
+      }
+
+      let px = floor(u * maskImg.width);
+      let py = floor(v * maskImg.height);
+
+      px = constrain(px, 0, maskImg.width - 1);
+      py = constrain(py, 0, maskImg.height - 1);
+
+      let index = 4 * (py * maskImg.width + px);
+      let alpha = maskImg.pixels[index + 3];
+
+      return alpha > 20;
+    }
+
+    function hasInteraction() {
+      if (touches.length > 0) {
+        return true;
+      }
+
+      if (INTERACT_ONLY_WHEN_PRESSED) {
+        return mouseIsPressed;
+      }
+
+      return true;
+    }
+
+    function getInteractX() {
+      return touches.length > 0 ? touches[0].x : mouseX;
+    }
+
+    function getInteractY() {
+      return touches.length > 0 ? touches[0].y : mouseY;
+    }
+
+    class StringCurtain {
+      constructor(x, startY, rowCount) {
+        this.nodes = [];
+
+        for (let i = 0; i < rowCount; i++) {
+          let yPos = startY + i * ROW_SPACING;
+
+          this.nodes.push({
+            x: x,
+            y: yPos,
+            oldX: x,
+            oldY: yPos,
+            baseX: x,
+            baseY: yPos
+          });
+        }
+      }
+
+      update() {
+        this.integrate();
+        this.solveConstraints();
+        this.limitExcessiveVelocity();
+      }
+
+      integrate() {
+        let interacting = hasInteraction();
+        let interactX = getInteractX();
+        let interactY = getInteractY();
+
+        this.nodes[0].x = this.nodes[0].baseX;
+        this.nodes[0].y = this.nodes[0].baseY;
+        this.nodes[0].oldX = this.nodes[0].baseX;
+        this.nodes[0].oldY = this.nodes[0].baseY;
+
+        for (let i = 1; i < this.nodes.length; i++) {
+          let node = this.nodes[i];
+
+          let vx = (node.x - node.oldX) * DAMPING;
+          let vy = (node.y - node.oldY) * DAMPING;
+
+          node.oldX = node.x;
+          node.oldY = node.y;
+
+          node.x += vx;
+          node.y += vy;
+
+          node.y += GRAVITY;
+
+          node.x += (node.baseX - node.x) * HORIZONTAL_RETURN_FORCE;
+
+          /*
+            很弱的竖直回正。
+            不是硬拉回原图，而是让被拨到上方的线最终能自然落回悬垂位置，
+            避免十几秒还飘在上面。
+          */
+          node.y += (node.baseY - node.y) * VERTICAL_SETTLE_FORCE;
+
+          /*
+            横杆上方限制。
+            帘子不能穿到挂杆上面太多。
+          */
+          let topLimit = offsetY - 2;
+          if (node.y < topLimit) {
+            node.y = topLimit;
+          }
+
+          if (interacting) {
+            let dx = node.x - interactX;
+            let dy = node.y - interactY;
+            let distance = sqrt(dx * dx + dy * dy);
+
+            if (distance < MOUSE_RADIUS && distance > 0.001) {
+              let push = (MOUSE_RADIUS - distance) / MOUSE_RADIUS;
+              push = push * push * MOUSE_RADIUS * MOUSE_FORCE;
+
+              node.x += (dx / distance) * push;
+              node.y += (dy / distance) * push;
+            }
+          }
+        }
+      }
+
+      solveConstraints() {
+        let restLength = ROW_SPACING;
+
+        for (let iter = 0; iter < CONSTRAINT_ITERATIONS; iter++) {
+          this.nodes[0].x = this.nodes[0].baseX;
+          this.nodes[0].y = this.nodes[0].baseY;
+
+          /*
+            从上到下解一次。
+          */
+          for (let i = 1; i < this.nodes.length; i++) {
+            this.solvePair(i - 1, i, restLength);
+          }
+
+          this.nodes[0].x = this.nodes[0].baseX;
+          this.nodes[0].y = this.nodes[0].baseY;
+
+          /*
+            再从下到上解一次。
+            这一步比单向硬拉自然很多，也能减少整体被拉长。
+          */
+          for (let i = this.nodes.length - 1; i >= 1; i--) {
+            this.solvePair(i - 1, i, restLength);
+          }
+        }
+
+        this.nodes[0].x = this.nodes[0].baseX;
+        this.nodes[0].y = this.nodes[0].baseY;
+      }
+
+      solvePair(indexA, indexB, restLength) {
+        let a = this.nodes[indexA];
+        let b = this.nodes[indexB];
+
+        let dx = b.x - a.x;
+        let dy = b.y - a.y;
+
+        let d = sqrt(dx * dx + dy * dy);
+
+        if (d < 0.001) {
+          return;
+        }
+
+        let diff = (d - restLength) / d;
+
+        let correctionX = dx * diff;
+        let correctionY = dy * diff;
+
+        if (indexA === 0) {
+          b.x -= correctionX;
+          b.y -= correctionY;
+        } else {
+          a.x += correctionX * 0.5;
+          a.y += correctionY * 0.5;
+
+          b.x -= correctionX * 0.5;
+          b.y -= correctionY * 0.5;
+        }
+      }
+
+      limitExcessiveVelocity() {
+        /*
+          防止一次大力拨动后速度过大，造成线条飞到很远再慢慢回来。
+          这不是定住，而是给速度做上限。
+        */
+        const MAX_SPEED = 18;
+
+        for (let i = 1; i < this.nodes.length; i++) {
+          let node = this.nodes[i];
+
+          let vx = node.x - node.oldX;
+          let vy = node.y - node.oldY;
+          let speed = sqrt(vx * vx + vy * vy);
+
+          if (speed > MAX_SPEED) {
+            let scale = MAX_SPEED / speed;
+            node.oldX = node.x - vx * scale;
+            node.oldY = node.y - vy * scale;
+          }
+        }
+      }
+
+      display() {
+        noFill();
+        strokeWeight(LINE_WEIGHT);
+        strokeCap(ROUND);
+        strokeJoin(ROUND);
+
+        for (let i = 1; i < this.nodes.length; i++) {
+          let n1 = this.nodes[i - 1];
+          let n2 = this.nodes[i];
+
+          /*
+            注意：颜色取样永远用 base 坐标。
+            所以帘子怎么动，图案不会被重新投影成拉伸图。
+          */
+          let maskX = (n1.baseX + n2.baseX) / 2;
+          let maskY = (n1.baseY + n2.baseY) / 2;
+
+          if (sampleMaskColor(maskX, maskY)) {
+            stroke(COLOR_PINK);
+          } else {
+            stroke(COLOR_BLUE);
+          }
+
+          line(n1.x, n1.y, n2.x, n2.y);
+        }
+      }
+    }
+
+    function touchStarted() {
+      playVideo();
+      return false;
+    }
+
+    function mousePressed() {
+      playVideo();
+    }
+
+    function touchMoved() {
+      return false;
+    }
+
+    function windowResized() {
+      resizeCanvas(windowWidth, windowHeight);
+      generateCurtains();
+      updateVideoLayout();
+
+      currentDialogueIndex = 0;
+      dialogueShowing = false;
+      dialogueLineStartTime = 0;
+      currentDialogueText = '';
+      revealLocked = false;
+
+      /*
+        窗口尺寸变化后，重置最后白色遮罩。
+      */
+      finalDialogueFinishedTime = -1;
+      finalCoverVisible = false;
+
+      /*
+        如果窗口变化后重新开始体验，就继续播放视频。
+      */
+      playVideo();
+    }
+  </script>
+</body>
+</html>
