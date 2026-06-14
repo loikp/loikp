@@ -3,6 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="color-scheme" content="light only">
+  <meta name="supported-color-schemes" content="light">
 
   <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.9.0/p5.js"></script>
 
@@ -14,6 +16,18 @@
       font-style: normal;
     }
 
+    :root {
+      color-scheme: light only;
+      supported-color-schemes: light;
+      background: #ffffff !important;
+    }
+
+    * {
+      forced-color-adjust: none;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
+    }
+
     html,
     body {
       margin: 0;
@@ -21,8 +35,12 @@
       width: 100%;
       height: 100%;
       overflow: hidden;
-      background: #ffffff;
+      background: #ffffff !important;
+      color: #000000 !important;
       touch-action: none;
+      forced-color-adjust: none;
+      -webkit-text-size-adjust: 100%;
+      text-size-adjust: 100%;
     }
 
     #videoBox {
@@ -31,6 +49,8 @@
       z-index: 1;
       pointer-events: none;
       background: transparent;
+      forced-color-adjust: none;
+      filter: none !important;
     }
 
     #bgVideo {
@@ -41,6 +61,8 @@
       left: 0;
       top: 0;
       pointer-events: none;
+      forced-color-adjust: none;
+      filter: none !important;
     }
 
     canvas {
@@ -50,6 +72,8 @@
       z-index: 2;
       display: block;
       pointer-events: auto;
+      forced-color-adjust: none;
+      filter: none !important;
     }
   </style>
 </head>
@@ -77,17 +101,13 @@
 
     const IMG_SCALE = 0.85;
 
-    /*
-      手机性能模式。
-      手机上减少节点数量，降低物理计算量。
-    */
     const IS_MOBILE =
       /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
       window.innerWidth < 700;
 
-    const ROW_SPACING = IS_MOBILE ? 5 : 2;
-    const COL_SPACING = IS_MOBILE ? 10 : 5;
-    const LINE_WEIGHT = IS_MOBILE ? 7.5 : 5.5;
+    const ROW_SPACING = IS_MOBILE ? 4 : 2;
+    const COL_SPACING = IS_MOBILE ? 8 : 5;
+    const LINE_WEIGHT = IS_MOBILE ? 6.5 : 5.5;
 
     const COLOR_BLUE = '#1e90ff';
     const COLOR_PINK = '#ff69b4';
@@ -101,10 +121,6 @@
     const DIALOGUE_HOLD_MS = 2600;
     const DIALOGUE_FADE_MS = 500;
 
-    /*
-      最后一句话的对话框消失后，等待多久盖住视频。
-      2000 = 2 秒
-    */
     const FINAL_COVER_DELAY_MS = 2000;
 
     const DIALOGUE_POS_X = 0.5;
@@ -200,11 +216,6 @@
     let videoBox;
 
     function setup() {
-      /*
-        关键优化：
-        手机上 Retina 屏默认像素密度可能是 2 或 3，
-        如果不设成 1，canvas 会非常卡。
-      */
       pixelDensity(1);
 
       createCanvas(windowWidth, windowHeight);
@@ -460,16 +471,10 @@
       let movedCount = 0;
       let totalCount = 0;
 
-      /*
-        手机上节点更少，这里不用再额外跳点。
-        如果你之后还卡，可以把 step 改成 IS_MOBILE ? 2 : 1。
-      */
-      let step = 1;
-
       for (let c = 0; c < curtains.length; c++) {
         let nodes = curtains[c].nodes;
 
-        for (let i = 1; i < nodes.length; i += step) {
+        for (let i = 1; i < nodes.length; i++) {
           let node = nodes[i];
 
           if (
@@ -565,7 +570,7 @@
 
       push();
       noStroke();
-      fill(255);
+      fill(255, 255, 255, 255);
       rectMode(CORNER);
       rect(rectInfo.left, rectInfo.top, rectInfo.width, rectInfo.height);
       pop();
@@ -575,14 +580,26 @@
       push();
 
       textFont(DIALOGUE_FONT_FAMILY);
-      textSize(getDialogueTextSize());
       textAlign(CENTER, CENTER);
 
-      let paddingX = IS_MOBILE ? 24 : 36;
+      let paddingX = IS_MOBILE ? 22 : 36;
+      let maxBoxW = videoWidth * 0.9;
+
+      let dialogueTextSize = getDialogueTextSize();
+      let minTextSize = IS_MOBILE ? 11 : 13;
+
+      textSize(dialogueTextSize);
+
+      while (
+        textWidth(textContent) + paddingX * 2 > maxBoxW &&
+        dialogueTextSize > minTextSize
+      ) {
+        dialogueTextSize -= 1;
+        textSize(dialogueTextSize);
+      }
+
       let targetTextW = textWidth(textContent);
       let targetBoxW = targetTextW + paddingX * 2;
-
-      let maxBoxW = videoWidth * 0.9;
       targetBoxW = min(targetBoxW, maxBoxW);
 
       let boxH = getDialogueBoxHeight();
@@ -624,6 +641,7 @@
       if (expandProgress > 0.82) {
         noStroke();
         fill(255, 255, 255, fadeAlpha);
+        textSize(dialogueTextSize);
         text(visibleText, 0, 1);
 
         if (visibleCount < textContent.length) {
@@ -633,7 +651,7 @@
             let cursorX = textWidth(visibleText) / 2 + 8;
             stroke(255, 255, 255, fadeAlpha);
             strokeWeight(2);
-            line(cursorX, -12, cursorX, 13);
+            line(cursorX, -dialogueTextSize * 0.6, cursorX, dialogueTextSize * 0.65);
           }
         }
       }
@@ -642,15 +660,27 @@
     }
 
     function getDialogueTextSize() {
-      if (windowWidth < 500) {
+      if (IS_MOBILE) {
+        if (windowWidth < 380) {
+          return 13;
+        }
+
+        if (windowWidth < 500) {
+          return 14;
+        }
+
         return 16;
       }
 
-      if (windowWidth < 900) {
-        return 18;
+      if (windowWidth < 500) {
+        return 15;
       }
 
-      return 22;
+      if (windowWidth < 900) {
+        return 17;
+      }
+
+      return 21;
     }
 
     function getDialogueBoxHeight() {
