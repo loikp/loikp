@@ -77,18 +77,23 @@
 
     const IMG_SCALE = 0.85;
 
-    const ROW_SPACING = 2;
-    const COL_SPACING = 5;
-    const LINE_WEIGHT = 5.5;
+    /*
+      手机性能模式。
+      手机上减少节点数量，降低物理计算量。
+    */
+    const IS_MOBILE =
+      /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent) ||
+      window.innerWidth < 700;
+
+    const ROW_SPACING = IS_MOBILE ? 4 : 2;
+    const COL_SPACING = IS_MOBILE ? 8 : 5;
+    const LINE_WEIGHT = IS_MOBILE ? 6.5 : 5.5;
 
     const COLOR_BLUE = '#1e90ff';
     const COLOR_PINK = '#ff69b4';
 
     const SAFE_MARGIN = 30;
 
-    /*
-      对话框参数
-    */
     const DIALOGUE_FONT_FAMILY = 'DialogueFont';
 
     const DIALOGUE_BOX_EXPAND_MS = 850;
@@ -98,44 +103,21 @@
 
     /*
       最后一句话的对话框消失后，等待多久盖住视频。
-      3000 = 3 秒
+      2000 = 2 秒
     */
     const FINAL_COVER_DELAY_MS = 2000;
 
-    /*
-      对话框在视频里的位置。
-      y 越大越往下。
-    */
     const DIALOGUE_POS_X = 0.5;
     const DIALOGUE_POS_Y = 0.88;
 
-    /*
-      检测掀开帘子的区域。
-      这个区域在视频中间偏下。
-    */
     const REVEAL_CHECK_POS_X = 0.5;
     const REVEAL_CHECK_POS_Y = 0.78;
     const REVEAL_CHECK_WIDTH_RATIO = 0.62;
     const REVEAL_CHECK_HEIGHT_RATIO = 0.28;
 
-    /*
-      这次只看横向拨动距离，避免帘子自己下垂导致误触发。
-      如果太难触发，改小，比如 14。
-      如果太容易触发，改大，比如 28。
-    */
-    const REVEAL_HORIZONTAL_THRESHOLD = 20;
+    const REVEAL_HORIZONTAL_THRESHOLD = IS_MOBILE ? 18 : 20;
+    const REVEAL_NODE_RATIO_THRESHOLD = IS_MOBILE ? 0.2 : 0.25;
 
-    /*
-      触发区域内至少有多少比例的节点被横向拨开。
-      如果太难触发，改小，比如 0.18。
-      如果太容易触发，改大，比如 0.35。
-    */
-    const REVEAL_NODE_RATIO_THRESHOLD = 0.25;
-
-    /*
-      对话内容。
-      每次掀开帘子，只触发下一句。
-    */
     const dialogueLines = [
       '* 你终于注意到帘子后面了。',
       '* 别急着合上，和我聊聊呗。',
@@ -189,37 +171,22 @@
     let dialogueLineStartTime = 0;
     let currentDialogueText = '';
 
-    /*
-      最后一句对话结束后的白色遮罩状态
-    */
     let finalDialogueFinishedTime = -1;
     let finalCoverVisible = false;
 
-    /*
-      防止一次持续拨动连续触发多句。
-      必须松开后，再次掀开，才会触发下一句。
-    */
     let revealLocked = false;
 
-    /*
-      物理参数。
-      这版重点是：自然下垂、能恢复、不明显拉长。
-    */
-    const GRAVITY = 0.22;
-    const DAMPING = 0.965;
+    const GRAVITY = IS_MOBILE ? 0.2 : 0.22;
+    const DAMPING = IS_MOBILE ? 0.96 : 0.965;
 
     const HORIZONTAL_RETURN_FORCE = 0.004;
     const VERTICAL_SETTLE_FORCE = 0.003;
 
-    const MOUSE_RADIUS = 100;
-    const MOUSE_FORCE = 0.6;
+    const MOUSE_RADIUS = IS_MOBILE ? 75 : 100;
+    const MOUSE_FORCE = IS_MOBILE ? 0.48 : 0.6;
 
-    const CONSTRAINT_ITERATIONS = 12;
+    const CONSTRAINT_ITERATIONS = IS_MOBILE ? 5 : 12;
 
-    /*
-      true：只有按住鼠标/触摸时才拨动。
-      false：鼠标悬停也会拨动。
-    */
     const INTERACT_ONLY_WHEN_PRESSED = true;
 
     let curtains = [];
@@ -233,7 +200,20 @@
     let videoBox;
 
     function setup() {
+      /*
+        关键优化：
+        手机上 Retina 屏默认像素密度可能是 2 或 3，
+        如果不设成 1，canvas 会非常卡。
+      */
+      pixelDensity(1);
+
       createCanvas(windowWidth, windowHeight);
+
+      if (IS_MOBILE) {
+        frameRate(30);
+      } else {
+        frameRate(60);
+      }
 
       setupMask();
 
@@ -325,10 +305,6 @@
 
     function playVideo() {
       if (!bgVideo) return;
-
-      /*
-        白色遮罩出现后，不再重新播放视频。
-      */
       if (finalCoverVisible) return;
 
       bgVideo.muted = true;
@@ -394,78 +370,41 @@
     function draw() {
       clear();
 
-      /*
-        先更新帘子物理。
-      */
       for (let i = 0; i < curtains.length; i++) {
         curtains[i].update();
       }
 
-      /*
-        根据当前拨动状态，判断是否触发下一句。
-      */
       updateDialogueTrigger();
 
-      /*
-        先画对话框。
-        因为 canvas 在 video 上方，所以对话框会在 video 上方；
-        但帘子后画，所以帘子会盖住对话框。
-      */
       drawCurrentDialogue();
 
-      /*
-        最后一句对话框消失 3 秒后，画白色矩形盖住视频。
-        注意：这里在帘子之前画，所以白色矩形会在视频上方、帘子下方。
-      */
       drawFinalWhiteCover();
 
-      /*
-        最后画帘子。
-      */
       for (let i = 0; i < curtains.length; i++) {
         curtains[i].display();
       }
     }
 
-    /*
-      每次真正掀开帘子，只触发下一句。
-    */
     function updateDialogueTrigger() {
       let interactingNow = hasInteraction();
 
-      /*
-        没有按住 / 没有触摸，就解除锁定。
-        下一次重新掀开才可以触发下一句。
-      */
       if (!interactingNow) {
         revealLocked = false;
         return;
       }
 
-      /*
-        当前对话还在显示时，不允许触发下一句。
-      */
       if (dialogueShowing) {
         return;
       }
 
-      /*
-        所有句子都显示完后，不再触发。
-      */
       if (currentDialogueIndex >= dialogueLines.length) {
         return;
       }
 
-      /*
-        一次按住期间已经触发过了，不再继续触发。
-      */
       if (revealLocked) {
         return;
       }
 
-      /*
-        必须指针在检测区域附近，并且帘子被横向拨开。
-      */
       if (isPointerInsideRevealArea() && isDialogueAreaRevealed()) {
         triggerNextDialogue();
         revealLocked = true;
@@ -502,10 +441,6 @@
       return px >= left && px <= right && py >= top && py <= bottom;
     }
 
-    /*
-      这里只检测横向位移 abs(node.x - node.baseX)。
-      不检测纵向位移，避免帘子自然下垂导致网页加载后误触发。
-    */
     function isDialogueAreaRevealed() {
       if (!videoBox) return false;
 
@@ -525,10 +460,16 @@
       let movedCount = 0;
       let totalCount = 0;
 
+      /*
+        手机上节点更少，这里不用再额外跳点。
+        如果你之后还卡，可以把 step 改成 IS_MOBILE ? 2 : 1。
+      */
+      let step = 1;
+
       for (let c = 0; c < curtains.length; c++) {
         let nodes = curtains[c].nodes;
 
-        for (let i = 1; i < nodes.length; i++) {
+        for (let i = 1; i < nodes.length; i += step) {
           let node = nodes[i];
 
           if (
@@ -575,10 +516,6 @@
         dialogueShowing = false;
         currentDialogueText = '';
 
-        /*
-          如果这是最后一句对话结束，
-          记录它结束的时间。
-        */
         if (
           currentDialogueIndex >= dialogueLines.length &&
           finalDialogueFinishedTime < 0
@@ -606,25 +543,16 @@
     function drawFinalWhiteCover() {
       if (!videoBox) return;
 
-      /*
-        最后一句还没结束，不画。
-      */
       if (finalDialogueFinishedTime < 0) {
         return;
       }
 
-      /*
-        最后一句结束后，等待 3 秒。
-      */
       let elapsed = millis() - finalDialogueFinishedTime;
 
       if (elapsed < FINAL_COVER_DELAY_MS) {
         return;
       }
 
-      /*
-        白色遮罩第一次出现时，暂停视频。
-      */
       if (!finalCoverVisible) {
         finalCoverVisible = true;
 
@@ -633,11 +561,6 @@
         }
       }
 
-      /*
-        画一个和视频区域一样大的白色矩形。
-        由于 canvas 在 video 上方，所以它会盖住视频。
-        又因为帘子在它后面绘制，所以帘子会盖住这个白色矩形。
-      */
       let rectInfo = videoBox.getBoundingClientRect();
 
       push();
@@ -655,7 +578,7 @@
       textSize(getDialogueTextSize());
       textAlign(CENTER, CENTER);
 
-      let paddingX = 36;
+      let paddingX = IS_MOBILE ? 24 : 36;
       let targetTextW = textWidth(textContent);
       let targetBoxW = targetTextW + paddingX * 2;
 
@@ -693,26 +616,16 @@
       translate(x, y);
       rectMode(CENTER);
 
-      /*
-        黑色底色，直角，无阴影，无小三角。
-        白色 2mm 粗边框。
-      */
       fill(0, 0, 0, fadeAlpha);
       stroke(255, 255, 255, fadeAlpha);
-      strokeWeight(mmToPx(2));
+      strokeWeight(mmToPx(IS_MOBILE ? 1.5 : 2));
       rect(0, 0, currentBoxW, boxH);
 
-      /*
-        文字。
-      */
       if (expandProgress > 0.82) {
         noStroke();
         fill(255, 255, 255, fadeAlpha);
         text(visibleText, 0, 1);
 
-        /*
-          打字机光标。
-        */
         if (visibleCount < textContent.length) {
           let cursorBlink = floor(millis() / 350) % 2 === 0;
 
@@ -853,18 +766,8 @@
           node.y += GRAVITY;
 
           node.x += (node.baseX - node.x) * HORIZONTAL_RETURN_FORCE;
-
-          /*
-            很弱的竖直回正。
-            不是硬拉回原图，而是让被拨到上方的线最终能自然落回悬垂位置，
-            避免十几秒还飘在上面。
-          */
           node.y += (node.baseY - node.y) * VERTICAL_SETTLE_FORCE;
 
-          /*
-            横杆上方限制。
-            帘子不能穿到挂杆上面太多。
-          */
           let topLimit = offsetY - 2;
           if (node.y < topLimit) {
             node.y = topLimit;
@@ -893,9 +796,6 @@
           this.nodes[0].x = this.nodes[0].baseX;
           this.nodes[0].y = this.nodes[0].baseY;
 
-          /*
-            从上到下解一次。
-          */
           for (let i = 1; i < this.nodes.length; i++) {
             this.solvePair(i - 1, i, restLength);
           }
@@ -903,10 +803,6 @@
           this.nodes[0].x = this.nodes[0].baseX;
           this.nodes[0].y = this.nodes[0].baseY;
 
-          /*
-            再从下到上解一次。
-            这一步比单向硬拉自然很多，也能减少整体被拉长。
-          */
           for (let i = this.nodes.length - 1; i >= 1; i--) {
             this.solvePair(i - 1, i, restLength);
           }
@@ -947,11 +843,7 @@
       }
 
       limitExcessiveVelocity() {
-        /*
-          防止一次大力拨动后速度过大，造成线条飞到很远再慢慢回来。
-          这不是定住，而是给速度做上限。
-        */
-        const MAX_SPEED = 18;
+        const MAX_SPEED = IS_MOBILE ? 14 : 18;
 
         for (let i = 1; i < this.nodes.length; i++) {
           let node = this.nodes[i];
@@ -978,10 +870,6 @@
           let n1 = this.nodes[i - 1];
           let n2 = this.nodes[i];
 
-          /*
-            注意：颜色取样永远用 base 坐标。
-            所以帘子怎么动，图案不会被重新投影成拉伸图。
-          */
           let maskX = (n1.baseX + n2.baseX) / 2;
           let maskY = (n1.baseY + n2.baseY) / 2;
 
@@ -1011,6 +899,13 @@
 
     function windowResized() {
       resizeCanvas(windowWidth, windowHeight);
+
+      if (IS_MOBILE) {
+        frameRate(30);
+      } else {
+        frameRate(60);
+      }
+
       generateCurtains();
       updateVideoLayout();
 
@@ -1020,15 +915,9 @@
       currentDialogueText = '';
       revealLocked = false;
 
-      /*
-        窗口尺寸变化后，重置最后白色遮罩。
-      */
       finalDialogueFinishedTime = -1;
       finalCoverVisible = false;
 
-      /*
-        如果窗口变化后重新开始体验，就继续播放视频。
-      */
       playVideo();
     }
   </script>
