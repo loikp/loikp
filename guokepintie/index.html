@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#1400FF">
+    <!-- 这里你可以随便改成你复制的花体英文字 -->
+    <title>*𝖎𝖙'𝖘 𝖗𝖆𝖎𝖓𝖎𝖓𝖌 𝖘𝖔𝖒𝖊𝖜𝖍𝖊𝖗𝖊 𝖊𝖑𝖘𝖊</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.6.0/p5.min.js"></script>
+    <style>
+        body { margin: 0; padding: 0; overflow: hidden; background-color: #1400FF; touch-action: none; }
+    </style>
+</head>
+<body>
+
+<!-- 背景音乐标签：src 里面写你的音乐文件名，loop 表示循环播放 -->
+<audio id="bgMusic" src="bgm.mp3" loop preload="auto"></audio>
+
+<script>
+let charImg;
+let maskImg; 
+let smallRainLayer; 
+let collisionData; 
+
+let mainDrops = [];
+let smallDrops = [];
+
+let charX, charY, scaledW, scaledH; 
+let protectionScore = 0; 
+
+let lightningAlpha = 0; 
+let lightningPhase = 0; 
+
+let uScale = 1; 
+let smallTextSize = 16; 
+
+// 音乐播放状态标记
+let isMusicPlaying = false;
+
+const charSet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+
+const colorPool = [
+    {r: 255, g: 255, b: 255}, 
+    {r: 180, g: 220, b: 255}, 
+    {r: 255, g: 190, b: 205}  
+];
+
+function preload() {
+    charImg = loadImage('character.png'); 
+}
+
+function setup() {
+    createCanvas(windowWidth, windowHeight);
+    
+    let maxCharW = width < 600 ? width * 0.70 : width * 0.4; 
+    let maxCharH = height * 0.65; 
+    let scaleFactor = min(maxCharW / charImg.width, maxCharH / charImg.height);
+    
+    scaledW = Math.floor(charImg.width * scaleFactor); 
+    scaledH = Math.floor(charImg.height * scaleFactor);
+    
+    charX = width / 2 - scaledW / 2;
+    charY = height - scaledH;
+
+    if (width < 600) {
+        uScale = 0.6;
+        smallTextSize = 11; 
+    } else {
+        uScale = 0.85;
+        smallTextSize = 16;
+    }
+
+    collisionData = createGraphics(scaledW, scaledH);
+    collisionData.pixelDensity(1); 
+    collisionData.image(charImg, 0, 0, scaledW, scaledH);
+    collisionData.loadPixels();
+    
+    maskImg = createImage(scaledW, scaledH);
+    maskImg.loadPixels();
+    
+    for (let i = 0; i < collisionData.pixels.length; i += 4) {
+        let r = collisionData.pixels[i];
+        let g = collisionData.pixels[i+1];
+        let b = collisionData.pixels[i+2];
+        let a = collisionData.pixels[i+3];
+        
+        if (a > 0 && b > 150 && r < 120) {
+            maskImg.pixels[i] = 255;
+            maskImg.pixels[i+1] = 255;
+            maskImg.pixels[i+2] = 255;
+            maskImg.pixels[i+3] = 255;
+        } else {
+            maskImg.pixels[i+3] = 0;
+        }
+    }
+    maskImg.updatePixels();
+
+    smallRainLayer = createGraphics(scaledW, scaledH);
+    
+    let dropCount = width < 600 ? 120 : 250;
+    for (let i = 0; i < dropCount; i++) {
+        mainDrops.push(new Drop(false));
+    }
+}
+
+// 阻止手机端网页跟着手指乱滚
+function touchMoved() { return false; }
+
+// 播放音乐的核心逻辑
+function startMusic() {
+    let bgm = document.getElementById('bgMusic');
+    // 如果找到了音乐标签，并且当前是暂停状态，就播放
+    if (bgm && bgm.paused) {
+        bgm.play().catch(e => console.log("等待真实点击后播放"));
+    }
+}
+
+// 监听用户的各种动作，只要有动静就尝试播放音乐
+window.addEventListener('click', startMusic);       // 监听：鼠标点击
+window.addEventListener('touchstart', startMusic);  // 监听：手指触摸屏幕
+window.addEventListener('keydown', startMusic);     // 监听：键盘按键
+
+function draw() {
+    background('#1400FF'); 
+
+    if (lightningPhase === 0 && random(1) < 0.005) { 
+        lightningPhase = 1;
+        lightningAlpha = 255; 
+    }
+    
+    if (lightningPhase > 0) {
+        push();
+        noStroke();
+        fill(230, 245, 255, max(0, lightningAlpha)); 
+        rect(0, 0, width, height);
+        pop();
+        
+        if (lightningPhase === 1) {
+            lightningAlpha -= 50; 
+            if (lightningAlpha <= -30) { 
+                lightningPhase = 2;
+                lightningAlpha = 130; 
+            }
+        } else if (lightningPhase === 2) {
+            lightningAlpha -= 25; 
+            if (lightningAlpha <= 0) {
+                lightningPhase = 0; 
+            }
+        }
+    }
+
+    image(charImg, charX, charY, scaledW, scaledH);
+
+    protectionScore = lerp(protectionScore, 100, 0.03); 
+
+    if (protectionScore > 60) { 
+        smallRainLayer.clear();
+        
+        if (smallDrops.length < 60 && frameCount % 2 === 0) {
+            smallDrops.push(new Drop(true));
+        }
+        
+        for (let i = smallDrops.length - 1; i >= 0; i--) {
+            smallDrops[i].updateSmall();
+            smallDrops[i].showSmall(smallRainLayer);
+            if (smallDrops[i].y > scaledH) {
+                smallDrops.splice(i, 1);
+            }
+        }
+        
+        // 【性能优化核心】使用 Canvas 混合模式来裁切，替代之前的 get()，彻底解决越挂越卡的问题
+        smallRainLayer.drawingContext.globalCompositeOperation = 'destination-in';
+        smallRainLayer.image(maskImg, 0, 0);
+        smallRainLayer.drawingContext.globalCompositeOperation = 'source-over';
+        
+        image(smallRainLayer, charX, charY);
+    } else {
+        smallDrops = []; 
+    }
+
+    let uX = mouseX || width / 2;
+    let uY = (mouseY || height / 3) - 20;
+    drawElegantUmbrella(uX, uY, uScale);
+
+    for (let drop of mainDrops) {
+        drop.update(uX, uY); 
+        drop.show();
+    }
+}
+
+
+function drawElegantUmbrella(x, y, s) {
+    push();
+    translate(x, y);
+    scale(s); 
+    
+    let R = 130; 
+    stroke('#151515');
+    strokeCap(SQUARE);
+    strokeWeight(6);
+    line(0, -40, 0, 70); 
+
+    strokeWeight(12); 
+    strokeCap(ROUND);
+    line(0, 70, 0, 95); 
+    noFill();
+    arc(-16, 95, 32, 32, 0, PI); 
+
+    strokeWeight(6);
+    line(0, -R, 0, -R - 10); 
+
+    fill('#151515'); 
+    noStroke();
+    beginShape();
+    for (let a = PI; a <= TWO_PI; a += 0.05) {
+        vertex(R * cos(a), R * sin(a));
+    }
+    
+    let p3x = R, p2x = R / 3, p1x = -R / 3, p0x = -R;
+    let ctrlY = -25;
+
+    quadraticVertex((p3x + p2x) / 2, ctrlY, p2x, 0); 
+    quadraticVertex((p2x + p1x) / 2, ctrlY, p1x, 0); 
+    quadraticVertex((p1x + p0x) / 2, ctrlY, p0x, 0); 
+    endShape(CLOSE);
+
+    noFill();
+    stroke('#5c78a1'); 
+    strokeWeight(2);
+    
+    beginShape();
+    vertex(0, -R);
+    quadraticVertex(-R * 0.45, -R * 0.55, p1x, 0);
+    endShape();
+
+    beginShape();
+    vertex(0, -R);
+    quadraticVertex(R * 0.45, -R * 0.55, p2x, 0);
+    endShape();
+    
+    pop();
+}
+
+function getRandomChar() {
+    return charSet.charAt(Math.floor(Math.random() * charSet.length));
+}
+
+class Drop {
+    constructor(isSmall) {
+        this.isSmall = isSmall;
+        if (!isSmall) {
+            this.x = random(width);
+            this.y = random(-500, -50);
+            this.speed = random(6, 16);
+            this.char = getRandomChar(); 
+            this.bounced = false;
+            this.vx = 0; 
+            
+            this.baseColor = random(colorPool);
+            this.history = [];
+        } else {
+            this.x = random(scaledW);
+            this.y = random(-20, 0);
+            this.speed = random(1.5, 3);
+            this.char = 'heh.'; 
+        }
+    }
+
+    update(uX, uY) {
+        this.history.push({x: this.x, y: this.y});
+        if (this.history.length > 4) {
+            this.history.shift();
+        }
+
+        if (this.bounced) {
+            this.x += this.vx;
+            this.y += this.speed;
+            this.speed += 0.5; 
+        } else {
+            this.y += this.speed;
+            
+            let uRadius = 130 * uScale;
+            let uCenterY = uY - 60 * uScale;
+            let d = dist(this.x, this.y, uX, uCenterY); 
+            
+            if (d < uRadius && this.y < uY && this.y > uY - uRadius) {
+                let offset = this.x - uX;
+                this.bounce(offset);
+                return;
+            }
+
+            let lookAheadY = this.y + this.speed + 12; 
+            
+            if (lookAheadY > charY && lookAheadY < charY + scaledH && this.x > charX && this.x < charX + scaledW) {
+                let localX = floor(this.x - charX);
+                let localY = floor(lookAheadY - charY);
+                let index = (localY * collisionData.width + localX) * 4;
+                
+                let r = collisionData.pixels[index];
+                let b = collisionData.pixels[index + 2];
+                let a = collisionData.pixels[index + 3];
+                
+                if (a > 50 && r > 180 && b > 180) {
+                    let centerX = charX + scaledW / 2;
+                    let offsetX = this.x - centerX;
+                    
+                    this.bounce(offsetX); 
+                    protectionScore -= 2; 
+                    if(protectionScore < 0) protectionScore = 0;
+                }
+            }
+        }
+
+        if (this.y > height) {
+            this.y = random(-200, -50);
+            this.x = random(width);
+            this.speed = random(6, 16);
+            this.bounced = false;
+            this.vx = 0;
+            this.char = getRandomChar(); 
+            this.history = []; 
+        }
+    }
+
+    bounce(offsetX) {
+        this.bounced = true;
+        let direction = offsetX > 0 ? 1 : -1; 
+        this.vx = direction * random(4, 9); 
+        this.speed = -random(5, 8); 
+        this.y -= 15; 
+    }
+
+    show() {
+        textSize(15); 
+        textAlign(CENTER, CENTER);
+
+        for (let i = 0; i < this.history.length; i++) {
+            let pos = this.history[i];
+            let alpha = map(i, 0, this.history.length - 1, 0, 180);
+            if (this.bounced) alpha *= 0.6; 
+            
+            fill(this.baseColor.r, this.baseColor.g, this.baseColor.b, alpha);
+            text(this.char, pos.x, pos.y);
+        }
+
+        fill(this.baseColor.r, this.baseColor.g, this.baseColor.b, this.bounced ? 150 : 255);
+        text(this.char, this.x, this.y);
+    }
+
+    updateSmall() {
+        this.y += this.speed;
+    }
+
+    showSmall(layer) {
+        layer.fill('#ffffff'); 
+        layer.textSize(smallTextSize); 
+        layer.textAlign(CENTER, CENTER);
+        layer.text(this.char, this.x, this.y);
+    }
+}
+</script>
+</body>
+</html>
