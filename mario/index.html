@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>骨兄弟的马里奥</title>
+<style>
+  @font-face{font-family:'SansCN';src:url('font/sans-cn.woff2') format('woff2');font-display:block}
+  @font-face{font-family:'SansEN';src:url('font/sans-en.woff2') format('woff2');font-display:block}
+  @font-face{font-family:'PapCN';src:url('font/pap-cn.woff2') format('woff2');font-display:block}
+  @font-face{font-family:'PapEN';src:url('font/pap-en.woff2') format('woff2');font-display:block}
+  html,body{margin:0;height:100%;background:#0b0b14;overflow:hidden;touch-action:none;
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;overscroll-behavior:none}
+  #wrap{position:fixed;inset:0;display:flex;align-items:center;justify-content:center}
+  #c{image-rendering:pixelated;image-rendering:crisp-edges;width:100%;height:auto;max-height:100%;
+    pointer-events:none;-webkit-touch-callout:none;user-select:none;-webkit-user-select:none}
+  img{-webkit-touch-callout:none;-webkit-user-drag:none;user-select:none;pointer-events:none}
+  .pad{position:fixed;bottom:14px;display:flex;gap:10px;z-index:5}
+  #padL{left:14px} #padR{right:14px}
+  #padS{right:18px;bottom:98px}
+  .btn{width:56px;height:56px;border-radius:50%;background:rgba(0,0,0,.42);
+    border:2px solid rgba(255,255,255,.3);color:#fff;font:700 18px SansCN, sans-serif;
+    display:flex;align-items:center;justify-content:center;line-height:1;box-sizing:border-box;
+    touch-action:none;position:relative;
+    -webkit-user-select:none;user-select:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent}
+  .btn .ar{position:absolute;inset:0;margin:auto;width:26px;height:26px;
+    image-rendering:pixelated;transform:rotate(90deg);opacity:.95}
+  .btn .ar.flip{transform:rotate(-90deg)}
+  .btn .lb{position:relative;z-index:1;display:block;line-height:1;transform:translateY(-1px)}
+  .btn.jump{width:66px;height:66px;font-size:19px;background:rgba(255,210,60,.22)}
+  .btn.jump .ar{display:none}
+  .btn.swap{width:46px;height:46px;font-size:16px;background:rgba(0,0,0,.32)}
+  @media (pointer:fine){ .pad{opacity:.22} }
+</style>
+</head>
+<body>
+<div id="wrap"><canvas id="c"></canvas></div>
+<div class="pad" id="padL">
+  <div class="btn" data-k="p0l"><img class="ar flip" src="assets/arrow-w.png" alt=""></div><div class="btn" data-k="p0r"><img class="ar" src="assets/arrow-w.png" alt=""></div>
+</div>
+<div class="pad" id="padR">
+  <div class="btn jump" data-k="p0j"><img class="ar" src="assets/arrow-w.png" alt=""><span class="lb">跳</span></div>
+</div>
+<div class="pad" id="padS">
+  <div class="btn swap" data-k="swap"><span class="lb">换</span></div>
+</div>
+<script>if(document.fonts){["12px SansCN","12px SansEN","12px PapEN"].forEach(function(f){document.fonts.load(f)})}</script>
+<script src="assets.js"></script>
+<script src="levels.js"></script>
+<script src="game.js"></script>
+</body>
+</html>
