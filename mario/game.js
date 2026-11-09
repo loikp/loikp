@@ -72,7 +72,8 @@
 
   /* ------------------------------ 声音 ------------------------------ */
   var SFX_SRC = { pickup: 'assets/sfx/pickup.wav', hurt: 'assets/sfx/hurt.wav',
-                  win: 'assets/sfx/win.wav', over: 'assets/sfx/over.wav' };
+                  win: 'assets/sfx/win.wav', over: 'assets/sfx/over.wav',
+                  test: 'assets/sfx/test.wav' };
   var SFX = {}, BGM = null, audioOn = 0;
   function initAudio() {
     if (audioOn) return; audioOn = 1;
@@ -210,7 +211,7 @@
       return;
     }
     else if (ch === '?') {
-      grid[ty][tx] = 'b';
+      grid[ty][tx] = 'b'; sfx('test');
       var gy = ty + 1;
       while (gy < ROWS && !solid(cell(tx, gy))) gy++;
       var pieP = Math.random() < 0.5;
@@ -220,7 +221,7 @@
                         w: 12, h: 14, vy: -3.4, t: 0, got: 0 });
       burst(tx, ty);
     }
-    else if (ch === 'x') { grid[ty][tx] = ' '; burst(tx, ty); }
+    else if (ch === 'x') { grid[ty][tx] = ' '; burst(tx, ty); sfx('test'); }
   }
 
   function restart() {
@@ -488,7 +489,7 @@
         if (e.dead) continue;
         if (p.x < e.x + e.w && p.x + p.w > e.x && p.y < e.y + e.h && p.y + p.h > e.y) {
           if (p.vy > 0 && p.y + p.h - e.y < 12 && e.type !== 'whimsun') {
-            e.dead = 1; p.vy = -5;
+            e.dead = 1; p.vy = -5; sfx('hurt');
             if (e.type === 'dog') {
               popup(e.x + e.w / 2, e.y - 2, '+2');
               for (var dk = 0; dk < 2; dk++) {
@@ -509,6 +510,7 @@
           } else {
             p.lives = Math.min(9, p.lives + 1);
             popup(it.x + 7, it.y - 2, '+1');
+            sfx('pickup');
           }
           burst(Math.floor((it.x + 7) / TS), Math.floor((it.y + 7) / TS));
         }
@@ -896,7 +898,7 @@
       ctx.font = '18px SansCN, sans-serif'; ctx.fillText('GAME OVER', W / 2, H / 2 - 18);
       ctx.font = '10px SansCN, sans-serif';
       ctx.fillStyle = 'rgba(255,255,255,.75)';
-      ctx.fillText(players[0].out ? 'sans 先躺下了' : '你哥先躺下了', W / 2, H / 2 + 6);
+      ctx.fillText(players[0].out ? 'sans 先躺下了' : '', W / 2, H / 2 + 6);
       ctx.fillStyle = 'rgba(255,255,255,.5)';
       ctx.fillText('按任意键重来', W / 2, H / 2 + 26);
     }
