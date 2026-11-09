@@ -70,6 +70,29 @@
   /* ------------------------------ 常量 ------------------------------ */
   var GRAV = 0.5, MAXFALL = 10;
 
+  /* ------------------------------ 声音 ------------------------------ */
+  var SFX_SRC = { pickup: 'assets/sfx/pickup.wav', hurt: 'assets/sfx/hurt.wav',
+                  win: 'assets/sfx/win.wav', over: 'assets/sfx/over.wav' };
+  var SFX = {}, BGM = null, audioOn = 0;
+  function initAudio() {
+    if (audioOn) return; audioOn = 1;
+    for (var k in SFX_SRC) {
+      try { var a = new Audio(SFX_SRC[k]); a.preload = 'auto'; a.volume = 0.55; SFX[k] = a; } catch (e) {}
+    }
+    try { BGM = new Audio('assets/sfx/bgm.mp3'); BGM.loop = true; BGM.volume = 0.32; } catch (e) {}
+    try { window.__a = { BGM: BGM, SFX: SFX }; } catch (e) {}
+    if (BGM) BGM.play().catch(function () {});
+  }
+  function sfx(n) {
+    var a = SFX[n];
+    if (!a) return;
+    try { a.currentTime = 0; a.play().catch(function () {}); } catch (e) {}
+  }
+  function bgm(on) {
+    if (!BGM) return;
+    try { if (on) { BGM.play().catch(function () {}); } else BGM.pause(); } catch (e) {}
+  }
+
   function mkPlayer(idx, kind) {
     var p = { idx: idx, kind: kind, vx: 0, vy: 0, onGround: 0, inv: 0, dead: 0,
               deadT: 0, out: 0, lives: 2, anim: 0, jumpLock: 0, face: 1 };
@@ -150,6 +173,7 @@
       items.push({ type: 'ketchup', x: k2[0] * TS + 2, y: k2[1] * TS + 2,
                    w: 12, h: 14, vy: 0, groundY: (k2[1] + 1) * TS, t: 0, got: 0 });
     });
+    if (audioOn) bgm(1);
     for (var r3 = 3; r3 <= 11; r3++) grid[r3][goalCol] = '|';
     grid[11][goalCol] = 'f';
 
@@ -204,9 +228,11 @@
     score = 0;
     build(0);
     phase = 'play';
+    bgm(1);
   }
 
   function killPlayer(p) {
+    sfx('hurt');
     if (p.inv > 0 || p.dead || p.out) return;
     p.lives--;
     if (p.lives <= 0) { p.lives = 0; p.out = 1; p.dead = 1; p.deadT = 0; }
@@ -349,6 +375,7 @@
   }
 
   function win() {
+    bgm(0); sfx('win');
     if (inBonus) { exitBonus(); return; }
     if (phase !== 'play') return;
     phase = 'win'; phaseT = 0;
@@ -478,7 +505,7 @@
         if (p.x < it.x + it.w && p.x + p.w > it.x && p.y < it.y + it.h && p.y + p.h > it.y) {
           it.got = 1;
           if (it.type === 'ketchup') {
-            score++; popup(it.x + 4, it.y - 2, '+1');
+            score++; popup(it.x + 4, it.y - 2, '+1'); sfx('pickup');
           } else {
             p.lives = Math.min(9, p.lives + 1);
             popup(it.x + 7, it.y - 2, '+1');
@@ -503,7 +530,7 @@
       var target = Math.max(0, Math.min(cols * TS - W, players[active].x - W / 2));
       cam.x += (target - cam.x) * 0.12;
 
-      if (players[0].out || players[1].out) { phase = 'gameover'; phaseT = 0; return; }
+      if (players[0].out || players[1].out) { phase = 'gameover'; phaseT = 0; bgm(0); sfx('over'); return; }
     } else if (phase === 'win') {
       phaseT += 1 / 60;
       if (phaseT > 1.6) {
@@ -919,6 +946,9 @@
   if (qcam) { cam.x = Math.max(0, Math.min(cols * TS - W, parseInt(qcam, 10))); }
   if (qpx) { players[0].x = parseInt(qpx, 10); players[1].x = parseInt(qpx, 10) + 20; cam.x = Math.max(0, players[0].x - W / 2); }
   if (/[?&]bonus=1/.test(location.search)) { build(-1, BONUS); }
+  ['pointerdown', 'keydown', 'touchstart'].forEach(function (ev) {
+    document.addEventListener(ev, function () { initAudio(); if (phase === 'play') bgm(1); }, { once: true, passive: true });
+  });
   if (/[?&]go=1/.test(location.search)) { players[0].lives = 0; players[0].out = 1; players[0].dead = 1; phase = 'gameover'; }
   if (/[?&]test=1/.test(location.search)) {
     window.__t = {
